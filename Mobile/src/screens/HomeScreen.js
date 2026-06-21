@@ -3,10 +3,11 @@ import { StyleSheet, View, Text, ScrollView, FlatList, ActivityIndicator } from 
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
+import { WalletCard } from '../components/WalletCard';
 import { Leaf, Recycle, Award, TrendingUp, ArrowRight } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 
-export const HomeScreen = () => {
+export const HomeScreen = ({ onNavigate }) => {
     const { theme, isDarkTheme } = useTheme();
     const [profile, setProfile] = useState(null);
     const [recentActivity, setRecentActivity] = useState([]);
@@ -89,40 +90,30 @@ export const HomeScreen = () => {
 
             {/* Points Summary Card */}
             <View style={styles.section}>
-                <Card gradient={[theme.colors.primary, theme.colors.primaryDark]} style={styles.pointsCard}>
-                    <View style={styles.pointsHeader}>
-                        <View>
-                            <Text style={styles.pointsLabel}>Total Credits</Text>
-                            <Text style={styles.pointsValue}>{profile?.eco_coins_balance?.toLocaleString() || 0}</Text>
-                        </View>
-                        <Award size={40} color="rgba(255,255,255,0.3)" />
-                    </View>
-                    <View style={styles.pointsFooter}>
-                        <View style={styles.badge}>
-                            <TrendingUp size={14} color={theme.colors.white} />
-                            <Text style={styles.badgeText}>Ready to earn more</Text>
-                        </View>
-                    </View>
-                </Card>
+                <WalletCard 
+                    balance={profile?.eco_coins_balance || 0} 
+                    name={profile?.full_name} 
+                    onRecyclePress={() => onNavigate && onNavigate('scan')} 
+                />
             </View>
 
             {/* Quick Actions */}
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
                 <View style={styles.quickActions}>
-                    <Card style={styles.actionCard} onPress={() => { }}>
+                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('scan')}>
                         <View style={[styles.iconBox, { backgroundColor: theme.colors.tint }]}>
                             <Recycle size={24} color={theme.colors.primary} />
                         </View>
                         <Text style={[styles.actionText, { color: theme.colors.text }]}>Recycle</Text>
                     </Card>
-                    <Card style={styles.actionCard} onPress={() => { }}>
+                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('rewards')}>
                         <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(92, 116, 143, 0.15)' : 'rgba(74, 96, 122, 0.1)' }]}>
                             <Award size={24} color={theme.colors.secondary} />
                         </View>
                         <Text style={[styles.actionText, { color: theme.colors.text }]}>Rewards</Text>
                     </Card>
-                    <Card style={styles.actionCard} onPress={() => { }}>
+                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('leaderboard')}>
                         <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(230, 167, 86, 0.15)' : 'rgba(176, 128, 71, 0.1)' }]}>
                             <Leaf size={24} color={theme.colors.accent} />
                         </View>

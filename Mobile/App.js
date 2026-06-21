@@ -87,12 +87,12 @@ function MainApp() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <HomeScreen />;
-      case 'scan': return <ScanScreen />;
-      case 'rewards': return <RewardsScreen />;
-      case 'leaderboard': return <LeaderboardScreen />;
-      case 'profile': return <ProfileScreen />;
-      default: return <HomeScreen />;
+      case 'home': return <HomeScreen onNavigate={setActiveTab} />;
+      case 'scan': return <ScanScreen onNavigate={setActiveTab} />;
+      case 'rewards': return <RewardsScreen onNavigate={setActiveTab} />;
+      case 'leaderboard': return <LeaderboardScreen onNavigate={setActiveTab} />;
+      case 'profile': return <ProfileScreen onNavigate={setActiveTab} />;
+      default: return <HomeScreen onNavigate={setActiveTab} />;
     }
   };
 
