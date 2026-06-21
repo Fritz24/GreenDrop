@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { Leaf, Mail, Lock, User } from 'lucide-react-native';
+import { Leaf, Mail, Lock, User, Wrench } from 'lucide-react-native';
 
 export const AuthScreen = () => {
     const { theme, isDarkTheme } = useTheme();
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(false);
     const [isLogin, setIsLogin] = useState(true);
+    const [isAgentMode, setIsAgentMode] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -63,6 +64,11 @@ export const AuthScreen = () => {
         setLoading(false);
     }
 
+    const toggleAgentMode = () => {
+        setIsAgentMode(!isAgentMode);
+        setIsLogin(true); // Always force login mode when switching to or from agent (agent must login)
+    };
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -75,11 +81,23 @@ export const AuthScreen = () => {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+                    <TouchableOpacity onPress={toggleAgentMode} style={{position: 'absolute', top: insets.top + 20, right: 20}}>
+                        <Text style={{color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600'}}>
+                            {isAgentMode ? 'User Portal' : 'Agent Login'}
+                        </Text>
+                    </TouchableOpacity>
+
                     <View style={[styles.logoContainer, { backgroundColor: isDarkTheme ? theme.colors.surface : 'rgba(255,255,255,0.2)' }]}>
-                        <Leaf size={40} color={isDarkTheme ? theme.colors.primary : theme.colors.white} />
+                        {isAgentMode ? (
+                            <Wrench size={40} color={isDarkTheme ? theme.colors.primary : theme.colors.white} />
+                        ) : (
+                            <Leaf size={40} color={isDarkTheme ? theme.colors.primary : theme.colors.white} />
+                        )}
                     </View>
                     <Text style={[styles.title, { color: theme.colors.white }]}>GreenDrop</Text>
-                    <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.8)' }]}>Recycle. Earn. Repeat.</Text>
+                    <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.8)' }]}>
+                        {isAgentMode ? 'Agent Access Portal' : 'Recycle. Earn. Repeat.'}
+                    </Text>
                 </View>
 
                 <Animated.View style={[
@@ -101,9 +119,11 @@ export const AuthScreen = () => {
                         tint={isDarkTheme ? 'dark' : 'light'}
                         style={StyleSheet.absoluteFillObject}
                     />
-                    <Text style={[styles.formTitle, { color: theme.colors.text }]}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+                    <Text style={[styles.formTitle, { color: theme.colors.text }]}>
+                        {isAgentMode ? 'Agent Login' : (isLogin ? 'Welcome Back' : 'Create Account')}
+                    </Text>
 
-                    {!isLogin && (
+                    {!isLogin && !isAgentMode && (
                         <View style={[
                             styles.inputContainer,
                             {
@@ -171,14 +191,16 @@ export const AuthScreen = () => {
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.secondaryButton}
-                        onPress={() => setIsLogin(!isLogin)}
-                    >
-                        <Text style={[styles.secondaryButtonText, { color: theme.colors.textLight }]}>
-                            {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-                        </Text>
-                    </TouchableOpacity>
+                    {!isAgentMode && (
+                        <TouchableOpacity
+                            style={styles.secondaryButton}
+                            onPress={() => setIsLogin(!isLogin)}
+                        >
+                            <Text style={[styles.secondaryButtonText, { color: theme.colors.textLight }]}>
+                                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </Animated.View>
             </ScrollView>
         </KeyboardAvoidingView>

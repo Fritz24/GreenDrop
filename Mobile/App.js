@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CombinedDefaultTheme, CombinedDarkTheme } from './src/theme'; // Import Combined themes
@@ -11,6 +11,7 @@ import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { AgentHomeScreen } from './src/screens/AgentHomeScreen';
 import { Home, Scan, Award, BarChart3, User } from 'lucide-react-native';
 import { supabase } from './src/lib/supabase';
 
@@ -19,17 +20,34 @@ function MainApp() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [session, setSession] = useState(null);
+  const [role, setRole] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+      handleSession(session);
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      handleSession(session);
     });
   }, []);
+
+  const handleSession = async (currentSession) => {
+    setSession(currentSession);
+    if (currentSession) {
+      const { data } = await supabase.from('profiles').select('role').eq('id', currentSession.user.id).single();
+      if (data) {
+        setRole(data.role);
+      } else {
+        setRole('user');
+      }
+    } else {
+      setRole(null);
+    }
+    setLoadingAuth(false);
+  };
 
   const handleOnboardingDone = () => {
     setShowOnboarding(false);
@@ -39,12 +57,31 @@ function MainApp() {
     return <OnboardingScreen onDone={handleOnboardingDone} />;
   }
 
+  if (loadingAuth) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
   if (!session) {
     return (
       <>
         <StatusBar barStyle={isDarkTheme ? 'light-content' : 'dark-content'} />
         <AuthScreen />
       </>
+    );
+  }
+
+  if (role === 'agent') {
+    return (
+      <View style={[{ backgroundColor: theme.colors.background }, styles.container]}>
+        <StatusBar barStyle={isDarkTheme ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
+        <View style={[styles.content, { paddingTop: insets.top }]}>
+          <AgentHomeScreen />
+        </View>
+      </View>
     );
   }
 
