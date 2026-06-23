@@ -54,15 +54,9 @@ export const ProfileScreen = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // In a production app, the auth user deletion is handled by a Supabase Edge Function
-        // or a PostgreSQL trigger on public.profiles. Here we clean up their profile data
-        // and sign them out.
         try {
             setLoading(true);
-            const { error } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', user.id);
+            const { error } = await supabase.rpc('delete_user');
 
             if (error) throw error;
             await supabase.auth.signOut();
