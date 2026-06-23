@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { User, Settings, LogOut, Shield, CircleHelp, Moon } from 'lucide-react-native';
+import { User, Settings, LogOut, Shield, CircleHelp, Moon, Trash2 } from 'lucide-react-native';
 import { Card } from '../components/Card';
 import { supabase } from '../lib/supabase';
 
@@ -50,6 +50,30 @@ export const ProfileScreen = () => {
         await supabase.auth.signOut();
     };
 
+    const handleDeleteAccount = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // In a production app, the auth user deletion is handled by a Supabase Edge Function
+        // or a PostgreSQL trigger on public.profiles. Here we clean up their profile data
+        // and sign them out.
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', user.id);
+
+            if (error) throw error;
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            alert('Could not delete account. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const MenuItem = ({ icon: Icon, label, value, onPress, isLast }) => (
         <TouchableOpacity
             style={[styles.menuItem, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}
@@ -86,9 +110,10 @@ export const ProfileScreen = () => {
             </View>
 
             <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.textLight }]}>APPEARANCE</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.textLight }]}>Appearance</Text>
                 <Card style={styles.menuCard}>
                     <MenuItem
+                        id="darkModeItem"
                         icon={Moon}
                         label="Dark Mode"
                         value={getModeLabel()}
@@ -99,7 +124,7 @@ export const ProfileScreen = () => {
             </View>
 
             <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.textLight }]}>ACCOUNT</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.textLight }]}>Account</Text>
                 <Card style={styles.menuCard}>
                     <MenuItem icon={Settings} label="Settings" onPress={() => { }} />
                     <MenuItem icon={Shield} label="Privacy & Security" onPress={() => { }} />
@@ -110,6 +135,19 @@ export const ProfileScreen = () => {
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <LogOut size={20} color={theme.colors.error} />
                 <Text style={[styles.logoutText, { color: theme.colors.error }]}>Log Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+                style={[styles.logoutButton, { marginTop: 20 }]} 
+                onPress={() => {
+                    // Check React Native's Alert or use standard confirmation dialog
+                    if (confirm("Are you sure you want to delete your account? This action is permanent and all your eco coins will be lost.")) {
+                        handleDeleteAccount();
+                    }
+                }}
+            >
+                <Trash2 size={20} color={theme.colors.error} />
+                <Text style={[styles.logoutText, { color: theme.colors.error }]}>Delete Account</Text>
             </TouchableOpacity>
 
             <View style={{ height: 120 }} />

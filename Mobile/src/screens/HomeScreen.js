@@ -93,7 +93,7 @@ export const HomeScreen = ({ onNavigate }) => {
                 <WalletCard 
                     balance={profile?.eco_coins_balance || 0} 
                     name={profile?.full_name} 
-                    onRecyclePress={() => onNavigate && onNavigate('scan')} 
+                    onRecyclePress={() => {}}
                 />
             </View>
 
@@ -101,7 +101,7 @@ export const HomeScreen = ({ onNavigate }) => {
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
                 <View style={styles.quickActions}>
-                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('scan')}>
+                    <Card style={styles.actionCard} onPress={() => {}}>
                         <View style={[styles.iconBox, { backgroundColor: theme.colors.tint }]}>
                             <Recycle size={24} color={theme.colors.primary} />
                         </View>

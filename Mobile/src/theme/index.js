@@ -25,8 +25,8 @@ const DarkColors = {
   primaryDark: '#506F4B',
   secondary: '#5C748F',
   accent: '#E6A756',
-  background: '#121611', // Very dark forest/charcoal background
-  surface: '#1A2118',    // Dark olive-black for cards
+  background: '#0B0E0A', // Darker forest/charcoal background
+  surface: '#121611',    // Darker surface
   text: '#F1F5F0',
   textLight: '#8C9E88',
   error: '#F87171',

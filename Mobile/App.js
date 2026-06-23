@@ -5,14 +5,14 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { CombinedDefaultTheme, CombinedDarkTheme } from './src/theme'; // Import Combined themes
 import { ThemeProvider, useTheme } from './src/context/ThemeContext'; // Import ThemeProvider and useTheme
 import { HomeScreen } from './src/screens/HomeScreen';
-import { ScanScreen } from './src/screens/ScanScreen';
+
 import { RewardsScreen } from './src/screens/RewardsScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { AgentHomeScreen } from './src/screens/AgentHomeScreen';
-import { Home, Scan, Award, BarChart3, User } from 'lucide-react-native';
+import { Home, Scan, Award, BarChart3, User, Leaf } from 'lucide-react-native';
 import { supabase } from './src/lib/supabase';
 
 function MainApp() {
@@ -88,7 +88,7 @@ function MainApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return <HomeScreen onNavigate={setActiveTab} />;
-      case 'scan': return <ScanScreen onNavigate={setActiveTab} />;
+
       case 'rewards': return <RewardsScreen onNavigate={setActiveTab} />;
       case 'leaderboard': return <LeaderboardScreen onNavigate={setActiveTab} />;
       case 'profile': return <ProfileScreen onNavigate={setActiveTab} />;
@@ -168,11 +168,18 @@ export default function App() {
 }
 
 const TabItem = ({ icon, label, isActive, onPress }) => {
-  const { theme } = useTheme(); // Use theme from context
+  const { theme, isDarkTheme } = useTheme();
   return (
-    <TouchableOpacity style={styles.tabItem} onPress={onPress}>
-      {icon}
-      <Text style={[styles.tabLabel, { color: theme.colors.textLight }, isActive && { color: theme.colors.primary }]}>{label}</Text>
+    <TouchableOpacity style={styles.tabItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.iconContainer, isActive && { backgroundColor: theme.colors.primary + '1A' }]}>
+        {icon}
+        {isActive && (
+          <View style={[styles.activeLeaf, { backgroundColor: isDarkTheme ? theme.colors.surface : '#FFFFFF' }]}>
+            <Leaf size={16} color={theme.colors.primary} fill={theme.colors.primary} />
+          </View>
+        )}
+      </View>
+      <Text style={[styles.tabLabel, { color: theme.colors.textLight }, isActive && { color: theme.colors.primary, fontWeight: '800' }]}>{label}</Text>
     </TouchableOpacity>
   );
 };
@@ -200,12 +207,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
     color: '#64748B',
-    marginTop: 4,
+    marginTop: 2,
+  },
+  activeLeaf: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    padding: 1,
   },
 
 });

@@ -41,8 +41,6 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 14,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
     icons: {
         flexDirection: 'row',

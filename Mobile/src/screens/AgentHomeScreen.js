@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
-import { MapPin, QrCode, ClipboardList, LogOut } from 'lucide-react-native';
+import { MapPin, ClipboardList, LogOut } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 
 export const AgentHomeScreen = () => {
