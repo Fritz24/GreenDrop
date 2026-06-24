@@ -5,6 +5,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { CombinedDefaultTheme, CombinedDarkTheme } from './src/theme'; // Import Combined themes
 import { ThemeProvider, useTheme } from './src/context/ThemeContext'; // Import ThemeProvider and useTheme
 import { HomeScreen } from './src/screens/HomeScreen';
+import { BookingScreen } from './src/screens/BookingScreen';
 
 import { RewardsScreen } from './src/screens/RewardsScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
@@ -14,10 +15,14 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { AgentHomeScreen } from './src/screens/AgentHomeScreen';
 import { Home, Scan, Award, BarChart3, User, Leaf } from 'lucide-react-native';
 import { supabase } from './src/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LocationOnboardingScreen } from './src/screens/LocationOnboardingScreen';
 
 function MainApp() {
   const { theme, isDarkTheme, themeMode, setThemeMode } = useTheme(); // Use theme, isDarkTheme, and themeMode from context
   const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showLocationOnboarding, setShowLocationOnboarding] = useState(false);
+  const [loadingOnboarding, setLoadingOnboarding] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
@@ -25,33 +30,157 @@ function MainApp() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
+    // Check onboarding states in storage
+    const checkOnboarding = async () => {
+      try {
+        const onboardingCompleted = await AsyncStorage.getItem('@onboarding_completed');
+        const locationOnboardingCompleted = await AsyncStorage.getItem('@location_onboarding_completed');
+        
+        if (onboardingCompleted === 'true') {
+          setShowOnboarding(false);
+          if (locationOnboardingCompleted !== 'true') {
+            setShowLocationOnboarding(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error reading onboarding status:', err);
+      } finally {
+        setLoadingOnboarding(false);
+      }
+    };
+    checkOnboarding();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleSession(session);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       handleSession(session);
+      if (event === 'SIGNED_OUT') {
+        setActiveTab('home');
+        try {
+          await AsyncStorage.removeItem('@onboarding_completed');
+          await AsyncStorage.removeItem('@location_onboarding_completed');
+          await AsyncStorage.removeItem('@onboarding_location');
+          setShowOnboarding(true);
+          setShowLocationOnboarding(false);
+        } catch (e) {
+          console.error('Error clearing onboarding status on signout:', e);
+        }
+      } else if (event === 'SIGNED_IN') {
+        setActiveTab('home');
+      }
     });
   }, []);
 
   const handleSession = async (currentSession) => {
-    setSession(currentSession);
+    setLoadingAuth(true);
     if (currentSession) {
-      const { data } = await supabase.from('profiles').select('role').eq('id', currentSession.user.id).single();
-      if (data) {
-        setRole(data.role);
-      } else {
-        setRole('user');
+      let userRole = 'user';
+      let needsLocationOnboarding = false;
+
+      // Fetch user's profile/role
+      try {
+        const { data } = await supabase.from('profiles').select('role').eq('id', currentSession.user.id).single();
+        if (data) {
+          userRole = data.role;
+        }
+      } catch (err) {
+        console.error('Error fetching role:', err);
       }
+
+      // Check if user has locations in database
+      try {
+        const userLocOnboardingKey = '@location_onboarding_completed_' + currentSession.user.id;
+        const locationOnboardingCompleted = await AsyncStorage.getItem(userLocOnboardingKey);
+        
+        if (locationOnboardingCompleted !== 'true') {
+          const { data: userLocs, error: locError } = await supabase
+            .from('user_locations')
+            .select('id')
+            .eq('user_id', currentSession.user.id);
+          
+          if (!locError && (!userLocs || userLocs.length === 0)) {
+            // Force location onboarding since user has 0 saved locations
+            needsLocationOnboarding = true;
+          } else if (!locError && userLocs && userLocs.length > 0) {
+            // User already has locations, mark onboarding as completed for this user
+            await AsyncStorage.setItem(userLocOnboardingKey, 'true');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking user locations in database:', err);
+      }
+
+      // Sync onboarding location to database
+      try {
+        const onboardingLocation = await AsyncStorage.getItem('@onboarding_location');
+        if (onboardingLocation) {
+          const parsed = JSON.parse(onboardingLocation);
+          const { error } = await supabase.from('user_locations').insert({
+            user_id: currentSession.user.id,
+            name: parsed.name,
+            city: parsed.city,
+            address: parsed.address,
+            latitude: parsed.latitude,
+            longitude: parsed.longitude,
+            is_default: true,
+          });
+
+          if (!error) {
+            await AsyncStorage.removeItem('@onboarding_location');
+            await AsyncStorage.setItem('@location_onboarding_completed', 'true');
+            await AsyncStorage.setItem('@location_onboarding_completed_' + currentSession.user.id, 'true');
+            needsLocationOnboarding = false;
+          } else {
+            console.error('Error syncing onboarding location:', error);
+          }
+        }
+      } catch (err) {
+        console.error('Error syncing location onboarding:', err);
+      }
+
+      setRole(userRole);
+      setShowLocationOnboarding(needsLocationOnboarding);
+      setSession(currentSession);
     } else {
       setRole(null);
+      setSession(null);
     }
     setLoadingAuth(false);
   };
 
-  const handleOnboardingDone = () => {
-    setShowOnboarding(false);
+  const handleOnboardingDone = async () => {
+    try {
+      await AsyncStorage.setItem('@onboarding_completed', 'true');
+      setShowOnboarding(false);
+      const locationOnboardingCompleted = await AsyncStorage.getItem('@location_onboarding_completed');
+      if (locationOnboardingCompleted !== 'true') {
+        setShowLocationOnboarding(true);
+      }
+    } catch (e) {
+      setShowOnboarding(false);
+      setShowLocationOnboarding(true);
+    }
   };
+
+  const handleLocationOnboardingDone = async () => {
+    try {
+      await AsyncStorage.setItem('@location_onboarding_completed', 'true');
+      if (session?.user?.id) {
+        await AsyncStorage.setItem('@location_onboarding_completed_' + session.user.id, 'true');
+      }
+    } catch (e) {}
+    setShowLocationOnboarding(false);
+  };
+
+  if (loadingOnboarding) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   if (showOnboarding) {
     return <OnboardingScreen onDone={handleOnboardingDone} />;
@@ -74,6 +203,10 @@ function MainApp() {
     );
   }
 
+  if (showLocationOnboarding && role !== 'agent') {
+    return <LocationOnboardingScreen onDone={handleLocationOnboardingDone} />;
+  }
+
   if (role === 'agent') {
     return (
       <View style={[{ backgroundColor: theme.colors.background }, styles.container]}>
@@ -86,14 +219,25 @@ function MainApp() {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'home': return <HomeScreen onNavigate={setActiveTab} />;
-
-      case 'rewards': return <RewardsScreen onNavigate={setActiveTab} />;
-      case 'leaderboard': return <LeaderboardScreen onNavigate={setActiveTab} />;
-      case 'profile': return <ProfileScreen onNavigate={setActiveTab} />;
-      default: return <HomeScreen onNavigate={setActiveTab} />;
-    }
+    return (
+      <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, display: activeTab === 'home' ? 'flex' : 'none' }}>
+          <HomeScreen onNavigate={setActiveTab} activeTab={activeTab} />
+        </View>
+        <View style={{ flex: 1, display: activeTab === 'booking' ? 'flex' : 'none' }}>
+          <BookingScreen onNavigate={setActiveTab} />
+        </View>
+        <View style={{ flex: 1, display: activeTab === 'rewards' ? 'flex' : 'none' }}>
+          <RewardsScreen onNavigate={setActiveTab} activeTab={activeTab} />
+        </View>
+        <View style={{ flex: 1, display: activeTab === 'leaderboard' ? 'flex' : 'none' }}>
+          <LeaderboardScreen parentActiveTab={activeTab} />
+        </View>
+        <View style={{ flex: 1, display: activeTab === 'profile' ? 'flex' : 'none' }}>
+          <ProfileScreen onNavigate={setActiveTab} />
+        </View>
+      </View>
+    );
   };
 
   const getNextMode = () => {

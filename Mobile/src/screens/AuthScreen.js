@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { Leaf, Mail, Lock, User, Wrench } from 'lucide-react-native';
+import { Leaf, Mail, Lock, User, Wrench, Eye, EyeOff, Phone } from 'lucide-react-native';
 
 export const AuthScreen = () => {
     const { theme, isDarkTheme } = useTheme();
@@ -15,6 +15,8 @@ export const AuthScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     // Animation values for sliding up and fading in the form card
     const slideAnim = useRef(new Animated.Value(300)).current;
@@ -49,18 +51,28 @@ export const AuthScreen = () => {
 
     async function signUpWithEmail() {
         setLoading(true);
-        const { error } = await supabase.auth.signUp({
-            email: email,
+        const { data, error } = await supabase.auth.signUp({
+            email: email.trim(),
             password: password,
             options: {
                 data: {
                     full_name: name,
+                    phone_number: phoneNumber,
                 },
             },
         });
 
-        if (error) alert(error.message);
-        else alert('Check your email for the confirmation link!');
+        if (error) {
+            alert(error.message);
+        } else if (data?.user?.identities && data.user.identities.length === 0) {
+            alert('An account with this email already exists. Please sign in instead.');
+        } else if (!data?.session) {
+            // Only alert if there is no session returned (meaning auto-signin didn't happen)
+            // But since email confirmation is disabled, they should be auto-signed in.
+            // If they are not, tell them to sign in.
+            alert('Account created! Please sign in if you are not automatically redirected.');
+            setIsLogin(true);
+        }
         setLoading(false);
     }
 
@@ -124,23 +136,43 @@ export const AuthScreen = () => {
                     </Text>
 
                     {!isLogin && !isAgentMode && (
-                        <View style={[
-                            styles.inputContainer,
-                            {
-                                backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.5)',
-                                borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
-                                borderWidth: 1,
-                            }
-                        ]}>
-                            <User size={20} color={theme.colors.textLight} style={styles.inputIcon} />
-                            <TextInput
-                                style={[styles.input, { color: theme.colors.text }]}
-                                placeholder="Full Name"
-                                placeholderTextColor={theme.colors.textLight}
-                                value={name}
-                                onChangeText={setName}
-                            />
-                        </View>
+                        <>
+                            <View style={[
+                                styles.inputContainer,
+                                {
+                                    backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.5)',
+                                    borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+                                    borderWidth: 1,
+                                }
+                            ]}>
+                                <User size={20} color={theme.colors.textLight} style={styles.inputIcon} />
+                                <TextInput
+                                    style={[styles.input, { color: theme.colors.text }]}
+                                    placeholder="Full Name"
+                                    placeholderTextColor={theme.colors.textLight}
+                                    value={name}
+                                    onChangeText={setName}
+                                />
+                            </View>
+                            <View style={[
+                                styles.inputContainer,
+                                {
+                                    backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.5)',
+                                    borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+                                    borderWidth: 1,
+                                }
+                            ]}>
+                                <Phone size={20} color={theme.colors.textLight} style={styles.inputIcon} />
+                                <TextInput
+                                    style={[styles.input, { color: theme.colors.text }]}
+                                    placeholder="Phone Number"
+                                    placeholderTextColor={theme.colors.textLight}
+                                    keyboardType="phone-pad"
+                                    value={phoneNumber}
+                                    onChangeText={setPhoneNumber}
+                                />
+                            </View>
+                        </>
                     )}
 
                     <View style={[
@@ -172,13 +204,23 @@ export const AuthScreen = () => {
                     ]}>
                         <Lock size={20} color={theme.colors.textLight} style={styles.inputIcon} />
                         <TextInput
-                            style={[styles.input, { color: theme.colors.text }]}
+                            style={[styles.input, { color: theme.colors.text, flex: 1 }]}
                             placeholder="Password"
                             placeholderTextColor={theme.colors.textLight}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}
                         />
+                        <TouchableOpacity
+                            style={{ padding: 10 }}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            {showPassword ? (
+                                <EyeOff size={20} color={theme.colors.textLight} />
+                            ) : (
+                                <Eye size={20} color={theme.colors.textLight} />
+                            )}
+                        </TouchableOpacity>
                     </View>
 
                     <TouchableOpacity
