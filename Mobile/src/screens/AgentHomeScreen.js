@@ -36,6 +36,7 @@ import {
   Check,
   Phone
 } from 'lucide-react-native';
+import * as LucideIcons from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 
 const STATUS_COLOR = {
@@ -110,11 +111,19 @@ const PickupCard = ({ pickup, theme, isDarkTheme, onOpenWeighModal }) => {
       {materials.length > 0 && (
         <View style={styles.materialsPillsRow}>
           {materials.map(m => {
-            const IconComponent = MATERIAL_ICONS[m.materials?.name] || Package;
+            const IconComponent = LucideIcons[m.materials?.icon] || MATERIAL_ICONS[m.materials?.name] || Package;
+            const matColor = m.materials?.color || theme.colors.primary;
             return (
-              <View key={m.id} style={[styles.materialPill, { backgroundColor: theme.colors.cardSecondary }]}>
-                <IconComponent size={12} color={theme.colors.primary} />
-                <Text style={[styles.materialPillText, { color: theme.colors.text }]}>
+              <View key={m.id} style={[
+                styles.materialPill, 
+                { 
+                  backgroundColor: isDarkTheme ? matColor + '20' : matColor + '12',
+                  borderColor: matColor + '20',
+                  borderWidth: 1
+                }
+              ]}>
+                <IconComponent size={12} color={matColor} style={{ marginRight: 4 }} />
+                <Text style={[styles.materialPillText, { color: isDarkTheme ? '#fff' : theme.colors.text }]}>
                   {m.materials?.name || 'Unknown'}: {m.weight_kg || 0} kg
                 </Text>
               </View>
@@ -218,7 +227,7 @@ export const AgentHomeScreen = () => {
         .select(`
           id, status, scheduled_date, scheduled_time, address, notes, latitude, longitude, photo_url,
           user:profiles!pickups_user_id_fkey(id, full_name, phone_number),
-          pickup_items(id, weight_kg, material_id, materials(id, name, eco_coins_per_kg))
+          pickup_items(id, weight_kg, material_id, materials(id, name, eco_coins_per_kg, icon, color))
         `)
         .eq('agent_id', user.id)
         .order('scheduled_date', { ascending: true });
@@ -392,7 +401,8 @@ export const AgentHomeScreen = () => {
               {/* Items Weigh List */}
               <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
                 {selectedPickup.pickup_items.map(item => {
-                  const IconComponent = MATERIAL_ICONS[item.materials?.name] || Package;
+                  const IconComponent = LucideIcons[item.materials?.icon] || MATERIAL_ICONS[item.materials?.name] || Package;
+                  const matColor = item.materials?.color || theme.colors.primary;
                   const rate = item.materials?.eco_coins_per_kg || 0;
                   const weight = parseFloat(actualWeights[item.id]) || 0;
                   const calculatedCoins = Math.round(weight * rate);
@@ -400,8 +410,8 @@ export const AgentHomeScreen = () => {
                   return (
                     <View key={item.id} style={[styles.itemRow, { borderBottomColor: theme.colors.border }]}>
                       <View style={styles.itemLeft}>
-                        <View style={[styles.itemIconBg, { backgroundColor: theme.colors.primary + '12' }]}>
-                          <IconComponent size={18} color={theme.colors.primary} />
+                        <View style={[styles.itemIconBg, { backgroundColor: matColor + '1A' }]}>
+                          <IconComponent size={18} color={matColor} />
                         </View>
                         <View>
                           <Text style={[styles.itemName, { color: theme.colors.text }]}>

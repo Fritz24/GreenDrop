@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GreenDrop UML Specification (Corrected)</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #1a202c;
+        line-height: 1.6;
+        margin: 0;
+        padding: 40px;
+        background-color: #ffffff;
+    }
+    .page {
+        page-break-after: always;
+        padding-top: 20px;
+        min-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .page:last-child {
+        page-break-after: avoid;
+    }
+    .title-page {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+        page-break-after: always;
+    }
+    .title {
+        font-size: 38px;
+        font-weight: 800;
+        color: #2f855a; /* GreenDrop green */
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+    }
+    .subtitle {
+        font-size: 20px;
+        color: #4a5568;
+        margin-bottom: 40px;
+    }
+    .meta {
+        font-size: 14px;
+        color: #718096;
+        margin-top: 100px;
+    }
+    h2 {
+        font-size: 24px;
+        color: #2f855a;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 8px;
+        margin-top: 0;
+    }
+    p {
+        font-size: 14px;
+        color: #4a5568;
+        margin-bottom: 20px;
+    }
+    .diagram-container {
+        text-align: center;
+        margin-top: 20px;
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .diagram-image {
+        max-width: 100%;
+        max-height: 65vh;
+        object-fit: contain;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        padding: 10px;
+        background-color: #fafbfc;
+    }
+</style>
+</head>
+<body>
+
+    <!-- Title Page -->
+    <div class="title-page">
+        <div class="title">GreenDrop</div>
+        <div class="subtitle">System UML Specification & Diagrams</div>
+        <p style="max-width: 600px; margin: 0 auto 30px;">A comprehensive, logically accurate UML blueprint mapping Use Cases (System Boundary), Sequences (Lifeline Activations), Classes (Production Database Types), and Activities (Swimlanes) for the GreenDrop waste recycling and rewards system.</p>
+        <div class="meta">
+            <p><strong>Version:</strong> 1.1 (Production-Aligned)</p>
+            <p><strong>Generated on:</strong> 2026-06-27</p>
+        </div>
+    </div>
+
+    <!-- Section 1: Use Case Diagram -->
+    <div class="page">
+        <h2>1. Use Case Diagram (System Boundary)</h2>
+        <p>This diagram represents the actors (Citizen, Collection Agent, and Administrator) interacting with the use cases inside the <strong>System Boundary</strong>. Notice the direct assignment use case, separating administrator decisions from the collection task flow.</p>
+        <div class="diagram-container">
+            <img class="diagram-image" src="./usecase_diagram.png" alt="Use Case Diagram">
+        </div>
+    </div>
+
+    <!-- Section 2: Sequence Diagram -->
+    <div class="page">
+        <h2>2. Sequence Diagram (Lifeline Activations)</h2>
+        <p>This diagram traces chronological step-by-step requests and responses with execution focuses (activations). It outlines the real booking lifecycle: Booking &rarr; Admin Assigns Agent &rarr; Agent Weighs Materials &rarr; call collect_pickup database RPC &rarr; real-time client-side progress evaluation.</p>
+        <div class="diagram-container">
+            <img class="diagram-image" src="./sequence_diagram.png" alt="Sequence Diagram">
+        </div>
+    </div>
+
+    <!-- Section 3: Class Diagram -->
+    <div class="page">
+        <h2>3. Database Class Schema (UML Attribute Style)</h2>
+        <p>This schema maps the actual production Supabase entities and columns using standard UML formats. Relies on UUID types for keys and maps the correct materials properties (such as <code>eco_coins_per_kg</code>). Ranks and badges calculations are dynamically resolved on-the-fly, bypassing database persistence tables.</p>
+        <div class="diagram-container">
+            <img class="diagram-image" src="./class_diagram.png" alt="Class Diagram">
+        </div>
+    </div>
+
+    <!-- Section 4: Activity Diagram -->
+    <div class="page">
+        <h2>4. Activity Diagram (Functional Swimlanes)</h2>
+        <p>Conforms directly to standard UML Activity Diagram modeling using <strong>Swimlanes</strong> to separate functional responsibilities across the Citizen, Administrator, Collection Agent, and Database System partitions.</p>
+        <div class="diagram-container">
+            <img class="diagram-image" src="./activity_diagram.png" alt="Activity Diagram">
+        </div>
+    </div>
+
+</body>
+</html>

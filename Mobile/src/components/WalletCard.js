@@ -1,13 +1,34 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, PanResponder, Animated } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useTheme } from '../context/ThemeContext';
 import { Leaf } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 const screenWidth = Dimensions.get('window').width;
 
-export const WalletCard = ({ balance = 0, name = 'User', onRecyclePress }) => {
+const getFormattedRevenue = (balance, currency, detectedCurrency) => {
+    const active = currency === 'auto' ? detectedCurrency : currency;
+    if (active === 'XAF') {
+        const val = Math.round(balance * 30);
+        return { value: val.toLocaleString(), suffix: ' FCFA', symbol: '' };
+    } else if (active === 'EUR') {
+        const val = balance * 0.045;
+        return { value: val.toFixed(2), suffix: '', symbol: '€' };
+    } else {
+        const val = balance * 0.05;
+        return { value: val.toFixed(2), suffix: '', symbol: '$' };
+    }
+};
+
+export const WalletCard = ({ balance = 0, name = 'User', activeTab, onRecyclePress }) => {
     const { theme, isDarkTheme } = useTheme();
+    const [isCoinsFront, setIsCoinsFront] = useState(true);
+    const [currency, setCurrency] = useState('auto');
+    const [detectedCurrency, setDetectedCurrency] = useState('USD');
 
     const cardWidth = screenWidth - 48; // Padding horizontal is 24 on each side
     const cardHeight = 180;
@@ -17,43 +38,271 @@ export const WalletCard = ({ balance = 0, name = 'User', onRecyclePress }) => {
     // Dynamic path generation to prevent cutout distortion
     const pathData = `M ${R},0 H ${cardWidth - R} A ${R},${R} 0 0 1 ${cardWidth},${R} V ${cardHeight - R2} A ${R2},${R2} 0 0 0 ${cardWidth - R2},${cardHeight} H ${R} A ${R},${R} 0 0 1 0,${cardHeight - R} V ${R} A ${R},${R} 0 0 1 ${R},0 Z`;
 
+    // Animation values
+    const dragY = useRef(new Animated.Value(0)).current;
+    const backCardScale = useRef(new Animated.Value(0.94)).current;
+    const backCardTop = useRef(new Animated.Value(0)).current;
+
+    let navigation;
+    try {
+        navigation = useNavigation();
+    } catch (e) {
+        // Navigation not available in this context
+    }
+
+    const loadCurrencySetting = async () => {
+        try {
+            const savedVal = await AsyncStorage.getItem('@user_currency');
+            if (savedVal) {
+                setCurrency(savedVal);
+            } else {
+                setCurrency('auto');
+            }
+        } catch (e) {
+            console.error('Error loading currency setting:', e);
+        }
+    };
+
+    const fetchDefaultLocationAndDetectCurrency = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // Get default saved location
+                const { data } = await supabase
+                    .from('user_locations')
+                    .select('city, address')
+                    .eq('user_id', user.id)
+                    .eq('is_default', true)
+                    .single();
+                
+                if (data) {
+                    const checkString = `${data.city} ${data.address}`.toLowerCase();
+                    if (checkString.includes('cameroon') || checkString.includes('yaounde') || checkString.includes('douala') || checkString.includes('bafoussam') || checkString.includes('bamenda') || checkString.includes('cm')) {
+                        setDetectedCurrency('XAF');
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            // Silence silent location fetch error
+        }
+
+        // If no default location, try GPS bounds check (fast & offline)
+        try {
+            const { status } = await Location.getForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const location = await Location.getLastKnownPositionAsync({});
+                if (location) {
+                    const { latitude, longitude } = location.coords;
+                    // Cameroon bounds roughly: latitude 1.5 to 13.5, longitude 8.0 to 16.5
+                    if (latitude >= 1.5 && latitude <= 13.5 && longitude >= 8.0 && longitude <= 16.5) {
+                        setDetectedCurrency('XAF');
+                        return;
+                    }
+                }
+            }
+        } catch (gpsErr) {
+            // Silence GPS detection error
+        }
+
+        // Default fallback is USD
+        setDetectedCurrency('USD');
+    };
+
+    useEffect(() => {
+        if (navigation) {
+            const unsubscribe = navigation.addListener('focus', () => {
+                loadCurrencySetting();
+                fetchDefaultLocationAndDetectCurrency();
+            });
+            loadCurrencySetting();
+            fetchDefaultLocationAndDetectCurrency();
+            return unsubscribe;
+        } else {
+            loadCurrencySetting();
+            fetchDefaultLocationAndDetectCurrency();
+        }
+    }, [navigation]);
+
+    // Handle updates when returning to the Home tab in custom switcher
+    useEffect(() => {
+        if (activeTab === 'home') {
+            loadCurrencySetting();
+            fetchDefaultLocationAndDetectCurrency();
+        }
+    }, [activeTab]);
+
+    // Handle updates when balance changes
+    useEffect(() => {
+        loadCurrencySetting();
+        fetchDefaultLocationAndDetectCurrency();
+    }, [balance]);
+
+    // PanResponder for vertical swipe gestures
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 3,
+            onPanResponderGrant: (evt, _) => {
+                // Prevent parent ScrollView from scrolling
+                evt.nativeEvent.target?.requestDisallowInterceptTouchEvent?.(true);
+            },
+            onPanResponderMove: (evt, gestureState) => {
+                // Keep preventing parent ScrollView from scrolling during drag
+                evt.nativeEvent.target?.requestDisallowInterceptTouchEvent?.(true);
+
+                // Front card follows drag
+                dragY.setValue(gestureState.dy);
+                
+                // Back card transitions (scales up and moves down to front position)
+                const dragPercent = Math.min(Math.abs(gestureState.dy) / 150, 1);
+                backCardScale.setValue(0.94 + dragPercent * 0.06);
+                backCardTop.setValue(dragPercent * 28);
+            },
+            onPanResponderTerminationRequest: () => false,
+            onShouldBlockNativeResponder: () => true,
+            onPanResponderRelease: (_, gestureState) => {
+                if (gestureState.dy > 40) {
+                    // Swipe down completed
+                    Animated.parallel([
+                        Animated.timing(dragY, {
+                            toValue: 160,
+                            duration: 180,
+                            useNativeDriver: false,
+                        }),
+                        Animated.timing(backCardScale, {
+                            toValue: 1.0,
+                            duration: 180,
+                            useNativeDriver: false,
+                        }),
+                        Animated.timing(backCardTop, {
+                            toValue: 28,
+                            duration: 180,
+                            useNativeDriver: false,
+                        })
+                    ]).start(() => {
+                        setIsCoinsFront(prev => !prev);
+                        dragY.setValue(0);
+                        backCardScale.setValue(0.94);
+                        backCardTop.setValue(0);
+                    });
+                } else if (gestureState.dy < -40) {
+                    // Swipe up completed
+                    Animated.parallel([
+                        Animated.timing(dragY, {
+                            toValue: -160,
+                            duration: 180,
+                            useNativeDriver: false,
+                        }),
+                        Animated.timing(backCardScale, {
+                            toValue: 1.0,
+                            duration: 180,
+                            useNativeDriver: false,
+                        }),
+                        Animated.timing(backCardTop, {
+                            toValue: 28,
+                            duration: 180,
+                            useNativeDriver: false,
+                        })
+                    ]).start(() => {
+                        setIsCoinsFront(prev => !prev);
+                        dragY.setValue(0);
+                        backCardScale.setValue(0.94);
+                        backCardTop.setValue(0);
+                    });
+                } else {
+                    // Cancelled, bounce back
+                    Animated.parallel([
+                        Animated.spring(dragY, {
+                            toValue: 0,
+                            tension: 60,
+                            friction: 7,
+                            useNativeDriver: false,
+                        }),
+                        Animated.spring(backCardScale, {
+                            toValue: 0.94,
+                            tension: 60,
+                            friction: 7,
+                            useNativeDriver: false,
+                        }),
+                        Animated.spring(backCardTop, {
+                            toValue: 0,
+                            tension: 60,
+                            friction: 7,
+                            useNativeDriver: false,
+                        })
+                    ]).start();
+                }
+            }
+        })
+    ).current;
+
     const formattedBalance = balance?.toLocaleString() || '0';
+    const activeCurrency = currency === 'auto' ? detectedCurrency : currency;
+    const revenueData = getFormattedRevenue(balance, currency, detectedCurrency);
+    const revenueText = `${revenueData.symbol}${revenueData.value}${revenueData.suffix}`;
+
+    // Interpolate rotation based on swipe drag
+    const frontCardStyle = {
+        transform: [
+            { translateY: dragY },
+            { rotate: dragY.interpolate({
+                inputRange: [-200, 0, 200],
+                outputRange: ['-8deg', '0deg', '8deg']
+              })
+            }
+        ]
+    };
+
+    const backCardStyle = {
+        transform: [
+            { scale: backCardScale }
+        ],
+        top: backCardTop
+    };
 
     return (
-        <View style={[styles.container, { height: cardHeight + 20 }]}>
-            {/* Back Card (Warm Accent Card) */}
-            <View 
+        <View style={[styles.container, { height: cardHeight + 35 }]}>
+            {/* Animated Back Card */}
+            <Animated.View 
                 style={[
                     styles.backCard, 
                     { 
                         width: cardWidth * 0.94,
-                        backgroundColor: theme.colors.accent,
+                        backgroundColor: isCoinsFront ? theme.colors.accent : theme.colors.primary,
                         shadowColor: theme.colors.black,
-                    }
+                    },
+                    backCardStyle
                 ]}
             >
-                {/* Visible top details of the back card */}
                 <View style={styles.backCardHeader}>
-                    {/* Overlapping circles like credit card brand */}
                     <View style={styles.cardBrandLogo}>
                         <View style={[styles.brandCircle, { backgroundColor: 'rgba(255,255,255,0.4)', marginRight: -8 }]} />
                         <View style={[styles.brandCircle, { backgroundColor: 'rgba(255,255,255,0.25)' }]} />
                     </View>
-                    <Text style={styles.backCardMask}>•••• •••• •••• 7216</Text>
+                    <Text style={styles.backCardMask}>
+                        {isCoinsFront ? '•••• •••• •••• 7216' : '•••• •••• •••• 4364'}
+                    </Text>
                 </View>
-            </View>
+            </Animated.View>
 
-            {/* Front Card Container */}
-            <View style={[styles.frontCard, { width: cardWidth, height: cardHeight }]}>
+            {/* Animated Front Card */}
+            <Animated.View 
+                style={[
+                    styles.frontCard, 
+                    { width: cardWidth, height: cardHeight },
+                    frontCardStyle
+                ]}
+                {...panResponder.panHandlers}
+            >
                 {/* SVG Card shape with bottom-right corner cutout */}
                 <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill}>
                     <Defs>
-                        <LinearGradient id="frontCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <Stop offset="0%" stopColor={theme.colors.primaryDark} />
-                            <Stop offset="100%" stopColor={theme.colors.primary} />
+                        <LinearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <Stop offset="0%" stopColor={isCoinsFront ? theme.colors.primaryDark : '#8E6638'} />
+                            <Stop offset="100%" stopColor={isCoinsFront ? theme.colors.primary : theme.colors.accent} />
                         </LinearGradient>
                     </Defs>
-                    <Path d={pathData} fill="url(#frontCardGrad)" />
+                    <Path d={pathData} fill="url(#cardGrad)" />
                 </Svg>
 
                 {/* Front Card Inner Content */}
@@ -64,15 +313,25 @@ export const WalletCard = ({ balance = 0, name = 'User', onRecyclePress }) => {
                             <Leaf size={18} color="rgba(255, 255, 255, 0.85)" />
                             <Text style={styles.logoText}>greendrop</Text>
                         </View>
-                        <Text style={styles.frontCardMask}>•••• •••• •••• 4364</Text>
+                        <Text style={styles.frontCardMask}>
+                            {isCoinsFront ? '•••• •••• •••• 4364' : '•••• •••• •••• 7216'}
+                        </Text>
                     </View>
 
                     {/* Middle Row (Balance) */}
                     <View style={styles.balanceContainer}>
-                        <Text style={styles.balanceLabel}>eco coins balance</Text>
+                        <Text style={styles.balanceLabel}>
+                            {isCoinsFront ? 'eco coins balance' : 'estimated revenue'}
+                        </Text>
                         <View style={styles.balanceRow}>
-                            <Text style={styles.balanceValue}>{formattedBalance}</Text>
-                            <Text style={styles.balanceSuffix}> coins</Text>
+                            {isCoinsFront ? (
+                                <>
+                                    <Text style={styles.balanceValue}>{formattedBalance}</Text>
+                                    <Text style={styles.balanceSuffix}> coins</Text>
+                                </>
+                            ) : (
+                                <Text style={styles.balanceValue}>{revenueText}</Text>
+                            )}
                         </View>
                     </View>
 
@@ -85,8 +344,12 @@ export const WalletCard = ({ balance = 0, name = 'User', onRecyclePress }) => {
                             </Text>
                         </View>
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoLabel}>tier</Text>
-                            <Text style={styles.infoValue}>Eco-Champion</Text>
+                            <Text style={styles.infoLabel}>
+                                {isCoinsFront ? 'tier' : 'currency'}
+                            </Text>
+                            <Text style={styles.infoValue}>
+                                {isCoinsFront ? 'Eco-Champion' : activeCurrency}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -106,7 +369,7 @@ export const WalletCard = ({ balance = 0, name = 'User', onRecyclePress }) => {
                     <Leaf size={14} color={theme.colors.primary} style={styles.buttonIcon} />
                     <Text style={styles.recycleButtonText}>+ recycle</Text>
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
         </View>
     );
 };

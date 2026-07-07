@@ -29,11 +29,13 @@ import {
   Briefcase,
   GraduationCap,
   Building2,
+  Coins,
 } from 'lucide-react-native';
 import { Card } from '../components/Card';
 import { supabase } from '../lib/supabase';
 import { searchLocations, reverseGeocode } from '../lib/maps';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CITIES = [
   { name: 'Yaoundé', latitude: 3.8480, longitude: 11.5021 },
@@ -54,6 +56,8 @@ export const ProfileScreen = () => {
   const [profile, setProfile] = useState(null);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currencySetting, setCurrencySetting] = useState('auto');
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
 
   // Saved locations states
   const [locations, setLocations] = useState([]);
@@ -84,7 +88,42 @@ export const ProfileScreen = () => {
   useEffect(() => {
     fetchProfile();
     fetchLocations();
+    loadCurrencySetting();
   }, []);
+
+  const loadCurrencySetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('@user_currency');
+      if (saved) {
+        setCurrencySetting(saved);
+      }
+    } catch (e) {
+      console.error('Error loading currency setting:', e);
+    }
+  };
+
+  const getCurrencyLabel = () => {
+    if (currencySetting === 'auto') return 'Automatic (Location)';
+    if (currencySetting === 'USD') return 'Dollar ($)';
+    if (currencySetting === 'XAF') return 'CFA Franc (FCFA)';
+    if (currencySetting === 'EUR') return 'Euro (€)';
+    return 'Automatic (Location)';
+  };
+
+  const cycleCurrency = async () => {
+    let next = 'auto';
+    if (currencySetting === 'auto') next = 'USD';
+    else if (currencySetting === 'USD') next = 'XAF';
+    else if (currencySetting === 'XAF') next = 'EUR';
+    else if (currencySetting === 'EUR') next = 'auto';
+
+    setCurrencySetting(next);
+    try {
+      await AsyncStorage.setItem('@user_currency', next);
+    } catch (e) {
+      console.error('Error saving currency setting:', e);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -478,7 +517,7 @@ export const ProfileScreen = () => {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.textLight }]}>Account</Text>
           <Card style={styles.menuCard}>
-            <MenuItem icon={Settings} label="Settings" onPress={() => { }} />
+            <MenuItem icon={Settings} label="Settings" onPress={() => setSettingsModalVisible(true)} />
             <MenuItem icon={Shield} label="Privacy & Security" onPress={() => { }} />
             <MenuItem icon={CircleHelp} label="Help & Support" isLast={true} onPress={() => { }} />
           </Card>
@@ -606,6 +645,34 @@ export const ProfileScreen = () => {
               <TouchableOpacity onPress={handleAddLocationSubmit} style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}>
                 <Text style={[styles.saveBtnText, { color: theme.colors.white }]}>Save Location</Text>
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal visible={settingsModalVisible} animationType="slide" transparent={true} onRequestClose={() => setSettingsModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Settings</Text>
+              <TouchableOpacity onPress={() => setSettingsModalVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              <Text style={[styles.fieldLabel, { color: theme.colors.textLight }]}>Preferences</Text>
+              <Card style={styles.menuCard}>
+                <MenuItem
+                  icon={Coins}
+                  label="Preferred Currency"
+                  value={getCurrencyLabel()}
+                  onPress={cycleCurrency}
+                  isLast={true}
+                />
+              </Card>
             </ScrollView>
           </View>
         </View>

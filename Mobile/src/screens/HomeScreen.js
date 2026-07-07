@@ -203,7 +203,8 @@ export const HomeScreen = ({ onNavigate, activeTab }) => {
                 <WalletCard 
                     balance={profile?.eco_coins_balance || 0} 
                     name={profile?.full_name} 
-                    onRecyclePress={() => {}}
+                    activeTab={activeTab}
+                    onRecyclePress={() => onNavigate && onNavigate('booking')}
                 />
             </View>
 

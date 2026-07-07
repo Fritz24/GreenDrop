@@ -75,6 +75,7 @@ const CATEGORIES = ['All', 'Food & Drinks', 'Transit', 'Utilities', 'Shopping'];
 export const RewardsScreen = ({ onNavigate, activeTab }) => {
     const { theme, isDarkTheme } = useTheme();
     const [profile, setProfile] = useState(null);
+    const [levels, setLevels] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeCategory, setActiveCategory] = useState('All');
@@ -89,6 +90,7 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
     useEffect(() => {
         if (activeTab === 'rewards') {
             fetchProfile();
+            fetchLevels();
         }
     }, [activeTab]);
 
@@ -116,40 +118,63 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
         }
     };
 
+    const fetchLevels = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('levels')
+                .select('*')
+                .order('min_points', { ascending: true });
+            if (data && !error) {
+                setLevels(data);
+            }
+        } catch (error) {
+            console.error('Error fetching levels from DB:', error);
+        }
+    };
+
     const getLevelInfo = (points) => {
-        if (points < 1000) {
+        if (!levels || levels.length === 0) {
+            // Fallback default levels if database levels not yet loaded
             return {
                 name: 'Eco Rookie',
                 min: 0,
                 max: 1000,
                 next: 'Eco Enthusiast',
-                progress: points / 1000
-            };
-        } else if (points < 2500) {
-            return {
-                name: 'Eco Enthusiast',
-                min: 1000,
-                max: 2500,
-                next: 'Waste Warrior',
-                progress: (points - 1000) / 1500
-            };
-        } else if (points < 5000) {
-            return {
-                name: 'Waste Warrior',
-                min: 2500,
-                max: 5000,
-                next: 'Sustainability Hero',
-                progress: (points - 2500) / 2500
-            };
-        } else {
-            return {
-                name: 'Sustainability Hero',
-                min: 5000,
-                max: 10000,
-                next: 'Elite Guardian',
-                progress: Math.min((points - 5000) / 5000, 1)
+                progress: Math.min(points / 1000, 1)
             };
         }
+        
+        // Find current level
+        let currentLvl = levels[0];
+        let nextLvl = null;
+        
+        for (let i = 0; i < levels.length; i++) {
+            if (points >= levels[i].min_points) {
+                currentLvl = levels[i];
+                nextLvl = levels[i + 1] || null;
+            }
+        }
+        
+        const min = currentLvl.min_points;
+        const max = currentLvl.max_points;
+        const name = currentLvl.name;
+        const next = nextLvl ? nextLvl.name : (currentLvl.next_level_name || 'Max Rank');
+        
+        // Calculate progress
+        let progress = 0;
+        if (max > min) {
+            progress = Math.min((points - min) / (max - min), 1);
+        } else {
+            progress = 1;
+        }
+        
+        return {
+            name,
+            min,
+            max,
+            next,
+            progress
+        };
     };
 
     const getIcon = (type, color) => {

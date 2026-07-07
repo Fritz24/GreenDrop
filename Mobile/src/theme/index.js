@@ -25,18 +25,18 @@ const DarkColors = {
   primaryDark: '#506F4B',
   secondary: '#5C748F',
   accent: '#E6A756',
-  background: '#0B0E0A', // Darker forest/charcoal background
-  surface: '#121611',    // Darker surface
-  text: '#F1F5F0',
-  textLight: '#8C9E88',
+  background: '#070809', // Darker neutral charcoal/black
+  surface: '#0F1113',    // Darker neutral card surface
+  text: '#E5E7EB',       // Neutral light gray text
+  textLight: '#9CA3AF',  // Neutral muted gray text
   error: '#F87171',
   white: '#FFFFFF',
   black: '#000000',
-  glass: 'rgba(26, 33, 24, 0.7)',
+  glass: 'rgba(15, 17, 19, 0.75)',
   cardSecondary: 'rgba(255, 255, 255, 0.05)',
   inputBg: 'rgba(255, 255, 255, 0.05)',
   border: 'rgba(255, 255, 255, 0.08)',
-  tint: 'rgba(109, 142, 103, 0.15)',
+  tint: 'rgba(109, 142, 103, 0.12)',
 };
 
 export const CombinedDefaultTheme = {

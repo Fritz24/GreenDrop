@@ -43,6 +43,7 @@ import {
   Layers,
   Wine,
 } from 'lucide-react-native';
+import * as LucideIcons from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -483,39 +484,34 @@ export const BookingScreen = ({ onNavigate }) => {
                   styles.materialCard,
                   {
                     backgroundColor: isDarkTheme
-                      ? selected ? theme.colors.primary + '22' : 'rgba(255,255,255,0.04)'
-                      : selected ? theme.colors.primary + '12' : theme.colors.surface,
-                    borderColor: selected ? theme.colors.primary : theme.colors.border,
+                      ? selected ? (mat.color || theme.colors.primary) + '22' : 'rgba(255,255,255,0.04)'
+                      : selected ? (mat.color || theme.colors.primary) + '12' : theme.colors.surface,
+                    borderColor: selected ? (mat.color || theme.colors.primary) : theme.colors.border,
                     borderWidth: selected ? 2 : 1,
                   },
                 ]}
                 onPress={() => toggleMaterial(mat)}
                 activeOpacity={0.8}
               >
-                <View style={[styles.materialIcon, { backgroundColor: selected ? theme.colors.primary + '20' : theme.colors.tint }]}>
+                <View style={[styles.materialIcon, { backgroundColor: selected ? (mat.color || theme.colors.primary) + '20' : theme.colors.tint }]}>
                   {(() => {
-                    const name = mat.name?.toLowerCase() || '';
-                    let IconComponent = Leaf;
-                    if (name.includes('plastic')) IconComponent = CupSoda;
-                    else if (name.includes('paper') || name.includes('carton')) IconComponent = FileText;
-                    else if (name.includes('alumin') || name.includes('metal') || name.includes('can')) IconComponent = Layers;
-                    else if (name.includes('glass') || name.includes('bottle')) IconComponent = Wine;
+                    const IconComponent = LucideIcons[mat.icon] || Leaf;
                     
                     return (
                       <IconComponent 
                         size={22} 
-                        color={selected ? theme.colors.primary : theme.colors.textLight} 
-                        fill={selected && IconComponent === Leaf ? theme.colors.primary : 'transparent'} 
+                        color={selected ? (mat.color || theme.colors.primary) : theme.colors.textLight} 
+                        fill={selected && IconComponent === Leaf ? (mat.color || theme.colors.primary) : 'transparent'} 
                       />
                     );
                   })()}
                 </View>
-                <Text style={[styles.materialName, { color: selected ? theme.colors.primary : theme.colors.text }]}>{mat.name}</Text>
+                <Text style={[styles.materialName, { color: selected ? (mat.color || theme.colors.primary) : theme.colors.text }]}>{mat.name}</Text>
                 {mat.eco_coins_per_kg ? (
                   <Text style={[styles.materialCoins, { color: theme.colors.textLight }]}>~{mat.eco_coins_per_kg} coins/kg</Text>
                 ) : null}
                 {selected && (
-                  <View style={[styles.checkBadge, { backgroundColor: theme.colors.primary }]}>
+                  <View style={[styles.checkBadge, { backgroundColor: mat.color || theme.colors.primary }]}>
                     <Check size={10} color="#fff" />
                   </View>
                 )}

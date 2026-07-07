@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Trophy, Medal, User, Users, Recycle, Leaf, Droplet, Cloud, Lock, Award, Sparkles } from 'lucide-react-native';
+import * as LucideIcons from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 
 const screenWidth = Dimensions.get('window').width;
@@ -29,6 +30,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
 
     // Leaderboard states
     const [leaderboard, setLeaderboard] = useState([]);
+    const [dbBadges, setDbBadges] = useState([]);
 
     useEffect(() => {
         if (parentActiveTab === 'leaderboard' || !parentActiveTab) {
@@ -53,6 +55,18 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                 .single();
             if (profileData) {
                 setProfile(profileData);
+            }
+
+            // Fetch dynamic badges from DB
+            try {
+                const { data: badgesData } = await supabase
+                    .from('badges')
+                    .select('*');
+                if (badgesData) {
+                    setDbBadges(badgesData);
+                }
+            } catch (badgeErr) {
+                console.error('Error fetching badges from DB:', badgeErr);
             }
 
             if (activeTab === 'impact') {
@@ -119,33 +133,24 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                 const { data: profiles, error: profsError } = await supabase
                     .from('profiles')
                     .select('id, full_name, eco_coins_balance')
+                    .eq('role', 'user')
                     .order('eco_coins_balance', { ascending: false });
 
                 let list = [];
-                if (!profsError && profiles && profiles.length > 1) {
+                if (!profsError && profiles && profiles.length > 0) {
                     list = profiles.map((p, index) => ({
                         id: p.id,
                         name: p.full_name || 'Eco Citizen',
                         points: p.eco_coins_balance || 0,
                         isMe: p.id === user.id
                     }));
-                } else {
-                    // Fallback mock list with user's real balance injected
-                    const myPoints = profileData?.eco_coins_balance || 2450;
-                    const myName = profileData?.full_name || 'Alex Johnson';
-
-                    const rawMock = [
-                        { id: '1', name: 'Emma Wilson', points: 15420 },
-                        { id: '2', name: 'David Chen', points: 12850 },
-                        { id: '3', name: 'Sarah Miller', points: 10200 },
-                        { id: '4', name: 'James Taylor', points: 8500 },
-                        { id: '5', name: 'Olivia Brown', points: 7200 },
-                        { id: 'me', name: `${myName} (You)`, points: myPoints, isMe: true }
-                    ];
-
-                    // Sort mock list by points descending
-                    rawMock.sort((a, b) => b.points - a.points);
-                    list = rawMock;
+                } else if (profileData && profileData.role === 'user') {
+                    list = [{
+                        id: profileData.id,
+                        name: profileData.full_name || 'Eco Citizen',
+                        points: profileData.eco_coins_balance || 0,
+                        isMe: true
+                    }];
                 }
 
                 // Add ranks
@@ -172,7 +177,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
     };
 
     // Calculate achievements/badges
-    const badges = [
+    const defaultBadges = [
         {
             id: 'b1',
             title: 'Eco Pioneer',
@@ -206,6 +211,37 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
             unlocked: impactStats.totalWeight >= 50
         }
     ];
+
+    const badges = dbBadges && dbBadges.length > 0
+        ? dbBadges.map(badge => {
+            let unlocked = false;
+            const val = Number(badge.rule_value);
+            
+            if (badge.rule_type === 'total_weight') {
+                unlocked = impactStats.totalWeight >= val;
+            } else if (badge.rule_type === 'plastic_weight') {
+                unlocked = impactStats.plasticWeight >= val;
+            } else if (badge.rule_type === 'paper_weight') {
+                unlocked = impactStats.paperWeight >= val;
+            } else if (badge.rule_type === 'metal_weight') {
+                unlocked = impactStats.metalWeight >= val;
+            } else if (badge.rule_type === 'glass_weight') {
+                unlocked = impactStats.glassWeight >= val;
+            }
+
+            // Dynamically lookup the Lucide icon from LucideIcons object
+            const IconComponent = LucideIcons[badge.icon] || Recycle;
+
+            return {
+                id: badge.id,
+                title: badge.title,
+                description: badge.description,
+                icon: IconComponent,
+                color: badge.color || '#10B981',
+                unlocked
+            };
+          })
+        : defaultBadges;
 
     // Separate top 3 podium from list
     const top3 = leaderboard.slice(0, 3);
