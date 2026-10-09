@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "project",
-    "slug": "project",
+    "name": "MyTrash",
+    "slug": "mytrash-web",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,9 +10,9 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
+      "backgroundColor": "#121811",
       "dark": {
-        "backgroundColor": "#1E293B"
+        "backgroundColor": "#121811"
       }
     },
     "ios": {
@@ -21,12 +21,22 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#121811"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "MyTrash",
+      "shortName": "MyTrash",
+      "lang": "en",
+      "display": "standalone",
+      "orientation": "portrait",
+      "themeColor": "#22C55E",
+      "backgroundColor": "#121811",
+      "description": "MyTrash - Smart Waste Management & Drop-off Platform"
     }
   }
 }

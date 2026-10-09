@@ -15,8 +15,8 @@ import {
   Keyboard,
   Dimensions,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -105,6 +105,8 @@ const STEPS = ['Materials', 'Schedule', 'Location', 'Review'];
 
 export const BookingScreen = ({ onNavigate }) => {
   const { theme, isDarkTheme } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= 768;
   const scrollRef = useRef(null);
   const mapRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -482,6 +484,7 @@ export const BookingScreen = ({ onNavigate }) => {
                 key={mat.id}
                 style={[
                   styles.materialCard,
+                  isDesktop && { width: '31%', maxWidth: 220 },
                   {
                     backgroundColor: isDarkTheme
                       ? selected ? (mat.color || theme.colors.primary) + '22' : 'rgba(255,255,255,0.04)'
@@ -761,35 +764,25 @@ export const BookingScreen = ({ onNavigate }) => {
             shadowOpacity: isDarkTheme ? 0.15 : 0.08,
             shadowRadius: 12,
             elevation: 4,
+            overflow: 'hidden',
           }]}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              }}
-              onMapReady={() => setMapReady(true)}
-              showsUserLocation
-              showsMyLocationButton={false}
-            >
-              <Marker
-                coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                title="Pickup Location"
-                description={location.address}
-                draggable={selectedSavedLocId === 'custom' || savedLocations.length === 0}
-                onDragEnd={handleMarkerDrag}
-              >
-                <View style={[styles.markerContainer, { backgroundColor: theme.colors.primary }]}>
-                  <Package size={18} color="#fff" />
-                </View>
-              </Marker>
-            </MapView>
+            {Platform.OS === 'web' ? (
+              <iframe
+                title="Pickup Location Map"
+                width="100%"
+                height="100%"
+                style={{ border: 0, borderRadius: 16 }}
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.005}%2C${location.latitude - 0.005}%2C${location.longitude + 0.005}%2C${location.latitude + 0.005}&layer=mapnik&marker=${location.latitude}%2C${location.longitude}`}
+              />
+            ) : (
+              <View style={[styles.mapPlaceholder, { backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.04)' : theme.colors.cardSecondary }]}>
+                <MapPin size={36} color={theme.colors.primary} />
+                <Text style={[styles.mapPlaceholderText, { color: theme.colors.text }]}>{location.address}</Text>
+              </View>
+            )}
             {(selectedSavedLocId === 'custom' || savedLocations.length === 0) && (
               <View style={[styles.mapOverlayHint, { backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)' }]}>
-                <Text style={[styles.mapHintText, { color: theme.colors.text }]}>📍 Drag marker to fine-tune</Text>
+                <Text style={[styles.mapHintText, { color: theme.colors.text }]}>📍 Pickup Location</Text>
               </View>
             )}
           </View>
@@ -890,7 +883,7 @@ export const BookingScreen = ({ onNavigate }) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }, isDesktop && { maxWidth: 760, width: '100%', alignSelf: 'center' }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack}>
@@ -918,9 +911,9 @@ export const BookingScreen = ({ onNavigate }) => {
 
       {/* Bottom nav */}
       <View style={[styles.bottomNav, {
-        bottom: 70 + Math.max(insets.bottom, 15) + 10,
+        bottom: isDesktop ? 20 : (70 + Math.max(insets.bottom, 15) + 10),
         zIndex: 100,
-      }]}>
+      }, isDesktop && { maxWidth: 760, width: '100%', alignSelf: 'center', left: 0, right: 0 }]}>
         {step < STEPS.length - 1 ? (
           <TouchableOpacity style={[styles.nextBtn, { backgroundColor: theme.colors.primary }]} onPress={goNext} activeOpacity={0.85}>
             <Text style={styles.nextBtnText}>Continue</Text>

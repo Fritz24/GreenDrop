@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
+    <title>MyTrash - Smart Waste Management Platform</title>
+
+    <!-- PWA & Mobile Web Meta Tags -->
+    <meta name="description" content="MyTrash - Smart Waste Management & Drop-off Platform" />
+    <meta name="theme-color" content="#22C55E" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MyTrash" />
+    <meta name="application-name" content="MyTrash" />
+    <meta name="msapplication-TileColor" content="#121811" />
+
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Google Fonts for crisp typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- The `react-native-web` recommended style reset + PWA desktop frame -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #FAF7F2;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body {
+        overflow-x: hidden;
+        display: flex;
+        align-items: stretch;
+      }
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      <div style="color: #ffffff; text-align: center; padding: 40px; font-family: sans-serif;">
+        <h2>JavaScript Required</h2>
+        <p>Please enable JavaScript to run MyTrash.</p>
+      </div>
+    </noscript>
+
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+
+    <!-- Service Worker Registration for PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function (reg) {
+              console.log('[MyTrash PWA] Service Worker registered:', reg.scope);
+              reg.update();
+              reg.addEventListener('updatefound', function () {
+                var newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', function () {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
+                  });
+                }
+              });
+            })
+            .catch(function (err) {
+              console.warn('[MyTrash PWA] Service Worker registration failed:', err);
+            });
+
+          var refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

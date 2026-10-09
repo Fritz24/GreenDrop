@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
@@ -8,6 +8,8 @@ import { Leaf, Mail, Lock, User, Wrench, Eye, EyeOff, Phone } from 'lucide-react
 
 export const AuthScreen = () => {
     const { theme, isDarkTheme } = useTheme();
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 768;
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(false);
     const [isLogin, setIsLogin] = useState(true);
@@ -84,11 +86,11 @@ export const AuthScreen = () => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={[styles.container, { backgroundColor: isDarkTheme ? theme.colors.background : theme.colors.white }]}
+            style={[styles.container, { backgroundColor: isDarkTheme ? theme.colors.background : theme.colors.white }, isDesktop && { justifyContent: 'center' }]}
         >
             <ScrollView 
                 style={{ flex: 1, backgroundColor: isDarkTheme ? theme.colors.background : theme.colors.primary }}
-                contentContainerStyle={styles.scrollContent} 
+                contentContainerStyle={[styles.scrollContent, isDesktop && { maxWidth: 500, width: '100%', alignSelf: 'center', justifyContent: 'center', paddingVertical: 40 }]} 
                 bounces={false} 
                 showsVerticalScrollIndicator={false}
             >
@@ -106,7 +108,7 @@ export const AuthScreen = () => {
                             <Leaf size={40} color={isDarkTheme ? theme.colors.primary : theme.colors.white} />
                         )}
                     </View>
-                    <Text style={[styles.title, { color: theme.colors.white }]}>GreenDrop</Text>
+                    <Text style={[styles.title, { color: theme.colors.white }]}>MyTrash</Text>
                     <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.8)' }]}>
                         {isAgentMode ? 'Agent Access Portal' : 'Recycle. Earn. Repeat.'}
                     </Text>
@@ -122,8 +124,9 @@ export const AuthScreen = () => {
                         opacity: opacityAnim,
                         transform: [{ translateY: slideAnim }],
                         overflow: 'hidden',
-                        paddingBottom: 600,
-                        marginBottom: -550,
+                        paddingBottom: isDesktop ? 40 : 600,
+                        marginBottom: isDesktop ? 0 : -550,
+                        ...(isDesktop && { borderRadius: 32, borderWidth: 1.5 }),
                     }
                 ]}>
                     <BlurView

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
@@ -74,6 +74,8 @@ const CATEGORIES = ['All', 'Food & Drinks', 'Transit', 'Utilities', 'Shopping'];
 
 export const RewardsScreen = ({ onNavigate, activeTab }) => {
     const { theme, isDarkTheme } = useTheme();
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 768;
     const [profile, setProfile] = useState(null);
     const [levels, setLevels] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
         const canAfford = (profile?.eco_coins_balance || 0) >= item.cost;
 
         return (
-            <Card style={styles.rewardCard}>
+            <Card style={[styles.rewardCard, isDesktop && styles.desktopRewardCard]}>
                 <View style={[styles.rewardIconWrapper, { backgroundColor: item.color + '1A' }]}>
                     {getIcon(item.icon, item.color)}
                 </View>
@@ -290,9 +292,9 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
             ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[{ paddingBottom: 110 }, isDesktop && styles.desktopScrollContainer]}>
                     {/* Glassmorphic Gradient Balance Card */}
-                    <View style={styles.cardContainer}>
+                    <View style={[styles.cardContainer, isDesktop && styles.desktopCardContainer]}>
                         <LinearGradient
                             colors={[theme.colors.primaryDark, theme.colors.primary, theme.colors.secondary]}
                             start={{ x: 0.1, y: 0.1 }}
@@ -331,7 +333,7 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
                     </View>
 
                     {/* Category ScrollView */}
-                    <View style={styles.categoryWrapper}>
+                    <View style={[styles.categoryWrapper, isDesktop && { maxWidth: 1100, width: '100%', alignSelf: 'center' }]}>
                         <ScrollView 
                             horizontal 
                             showsHorizontalScrollIndicator={false}
@@ -364,7 +366,7 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
                     </View>
 
                     {/* Rewards List Header */}
-                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Featured Rewards</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.colors.text }, isDesktop && { maxWidth: 1100, width: '100%', alignSelf: 'center' }]}>Featured Rewards</Text>
 
                     {/* List */}
                     <FlatList
@@ -372,7 +374,7 @@ export const RewardsScreen = ({ onNavigate, activeTab }) => {
                         renderItem={renderRewardItem}
                         keyExtractor={item => item.id}
                         scrollEnabled={false}
-                        contentContainerStyle={styles.listContainer}
+                        contentContainerStyle={[styles.listContainer, isDesktop && styles.desktopListContainer]}
                         ListEmptyComponent={() => (
                             <View style={styles.emptyView}>
                                 <AlertCircle size={40} color={theme.colors.textLight} />
@@ -948,6 +950,26 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '700',
-    }
+    },
+    desktopScrollContainer: {
+        maxWidth: 1100,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopCardContainer: {
+        maxWidth: 600,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopListContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 16,
+    },
+    desktopRewardCard: {
+        width: '48.5%',
+        marginBottom: 0,
+    },
 });
 

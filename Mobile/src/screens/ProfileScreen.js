@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -53,6 +54,8 @@ const NICKNAMES = [
 
 export const ProfileScreen = () => {
   const { theme, isDarkTheme, themeMode, setThemeMode } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= 768;
   const [profile, setProfile] = useState(null);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
@@ -397,7 +400,7 @@ export const ProfileScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[{ paddingBottom: 120 }, isDesktop && { maxWidth: 800, width: '100%', alignSelf: 'center' }]}>
         {/* Header Profile Info */}
         <View style={styles.header}>
           <View style={[styles.avatarContainer, { backgroundColor: theme.colors.surface }]}>

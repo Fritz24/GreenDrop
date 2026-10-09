@@ -15,7 +15,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import MapView from 'react-native-maps';
 import { useTheme } from '../context/ThemeContext';
 import { reverseGeocode } from '../lib/maps';
 import { Leaf, Navigation, MapPin, ChevronLeft } from 'lucide-react-native';
@@ -288,7 +287,7 @@ export const LocationOnboardingScreen = ({ onDone }) => {
 
       {/* STEP 1: DETECT VIEW */}
       {step === 'detect' && (
-        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 60 }}>
+        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 60, maxWidth: 520, width: '100%', alignSelf: 'center' }}>
           {/* Title Heading */}
           <Text style={[styles.mainTitle, { color: isDarkTheme ? theme.colors.text : '#1A1A1A' }]}>
             Where's your pickup spot?
@@ -346,15 +345,15 @@ export const LocationOnboardingScreen = ({ onDone }) => {
       {step === 'success' && (
         <View style={StyleSheet.absoluteFillObject}>
           {/* Full Screen Map */}
-          <MapView
-            ref={mapRef}
-            style={StyleSheet.absoluteFillObject}
-            initialRegion={region}
-            onRegionChangeComplete={onRegionChangeComplete}
-            customMapStyle={isDarkTheme ? darkMinimalistMapStyle : minimalistMapStyle}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
-          />
+          {Platform.OS === 'web' ? (
+            <iframe
+              title="Location Map"
+              width="100%"
+              height="100%"
+              style={{ border: 0, width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${region.longitude - 0.01}%2C${region.latitude - 0.01}%2C${region.longitude + 0.01}%2C${region.latitude + 0.01}&layer=mapnik&marker=${region.latitude}%2C${region.longitude}`}
+            />
+          ) : null}
 
           {/* Center Pin (Leaf) */}
           <View style={styles.centerPinContainer} pointerEvents="none">

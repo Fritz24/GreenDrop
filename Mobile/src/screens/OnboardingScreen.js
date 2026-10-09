@@ -1,120 +1,167 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
-import AppIntroSlider from 'react-native-app-intro-slider';
+import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar, SafeAreaView } from 'react-native';
 import { slides } from '../constants/onboardingData';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const OnboardingScreen = ({ onDone }) => {
-  const { theme, isDarkTheme } = useTheme(); // Use theme from context
-  const [showSkipButton, setShowSkipButton] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const _renderItem = ({ item }) => {
-    return (
-      <View style={[styles.slide, { backgroundColor: theme.colors.background }]}>
-        <Image source={item.image} style={styles.image} />
-        <Text style={[styles.title, { color: theme.colors.text }]}>{item.title}</Text>
-        <Text style={[styles.text, { color: theme.colors.textLight }]}>{item.description}</Text>
-      </View>
-    );
-  };
+  const currentSlide = slides[currentIndex] || slides[0];
+  const isLastSlide = currentIndex === slides.length - 1;
 
-  const _renderNextButton = () => {
-    return (
-      <View style={[styles.buttonCircle, { backgroundColor: theme.colors.primary }]}>
-        <Text style={[styles.buttonText, { color: theme.colors.white }]}>Next</Text>
-      </View>
-    );
-  };
-
-  const _renderDoneButton = () => {
-    return (
-      <View style={[styles.buttonCircle, { backgroundColor: theme.colors.primary }]}>
-        <Text style={[styles.buttonText, { color: theme.colors.white }]}>Done</Text>
-      </View>
-    );
-  };
-
-  const _renderSkipButton = () => {
-    return (
-      <View style={styles.skipButton}>
-        <Text style={[styles.skipButtonText, { color: theme.colors.text }]}>Skip</Text>
-      </View>
-    );
-  };
-
-  const _onSlideChange = (index) => {
-    if (index >= 2) {
-      setShowSkipButton(false);
+  const handleNext = () => {
+    if (isLastSlide) {
+      onDone();
     } else {
-      setShowSkipButton(true);
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
+  const handleSkip = () => {
+    onDone();
+  };
+
   return (
-    <>
-      <StatusBar barStyle={isDarkTheme ? 'light-content' : 'dark-content'} />
-      <AppIntroSlider
-        renderItem={_renderItem}
-        data={slides}
-        onDone={onDone}
-        renderDoneButton={_renderDoneButton}
-        renderNextButton={_renderNextButton}
-        renderSkipButton={_renderSkipButton}
-        onSkip={onDone}
-        showSkipButton={showSkipButton}
-        onSlideChange={_onSlideChange}
-        activeDotStyle={[{ backgroundColor: theme.colors.primary }, styles.activeDotStyle]}
-        dotStyle={[{ backgroundColor: theme.colors.textLight }, styles.dotStyle]}
-      />
-    </>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAF7F2" />
+
+      {/* Main Slide Content */}
+      <View style={styles.content}>
+        <Image source={currentSlide.image} style={styles.image} resizeMode="contain" />
+        <Text style={styles.title}>{currentSlide.title}</Text>
+        <Text style={styles.description}>{currentSlide.description}</Text>
+      </View>
+
+      {/* Bottom Bar matching original mobile app */}
+      <View style={styles.bottomBar}>
+        {/* Left: Skip */}
+        {!isLastSlide ? (
+          <TouchableOpacity onPress={handleSkip} style={styles.skipButton} activeOpacity={0.7}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.skipPlaceholder} />
+        )}
+
+        {/* Center: Dots */}
+        <View style={styles.dotsContainer}>
+          {slides.map((_, index) => {
+            const isActive = index === currentIndex;
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setCurrentIndex(index)}
+                style={[styles.dot, isActive ? styles.activeDot : styles.inactiveDot]}
+              />
+            );
+          })}
+        </View>
+
+        {/* Right: Round Next / Done Button */}
+        <TouchableOpacity onPress={handleNext} style={styles.buttonCircle} activeOpacity={0.8}>
+          <Text style={styles.buttonText}>{isLastSlide ? 'Done' : 'Next'}</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  slide: {
+  container: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FAF7F2',
+    justifyContent: 'space-between',
+  },
+  content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
+    backgroundColor: '#FAF7F2',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   image: {
-    width: 350,
-    height: 350,
-    resizeMode: 'contain',
-    marginBottom: 20,
+    width: 320,
+    height: 320,
+    marginBottom: 24,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 10,
+    color: '#202B1D',
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
-  text: {
+  description: {
     fontSize: 16,
     textAlign: 'center',
+    color: '#5A6B57',
+    lineHeight: 22,
+    maxWidth: 380,
   },
-  buttonCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
+  bottomBar: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  buttonText: {
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  activeDotStyle: {},
-  dotStyle: {
-    backgroundColor: 'rgba(0, 0, 0, .2)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 12,
+    backgroundColor: '#FAF7F2',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   skipButton: {
-    width: 60,
+    minWidth: 60,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  skipButtonText: {
+  skipPlaceholder: {
+    minWidth: 60,
+    height: 40,
+  },
+  skipText: {
+    fontSize: 16,
+    color: '#5A6B57',
+    fontWeight: '500',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  activeDot: {
+    backgroundColor: '#455A3F',
+  },
+  inactiveDot: {
+    backgroundColor: 'rgba(69, 90, 63, 0.25)',
+  },
+  buttonCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#455A3F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#455A3F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });

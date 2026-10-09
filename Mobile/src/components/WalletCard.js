@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions, PanResponder, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, PanResponder, Animated } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useTheme } from '../context/ThemeContext';
 import { Leaf } from 'lucide-react-native';
@@ -7,8 +7,6 @@ import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
-
-const screenWidth = Dimensions.get('window').width;
 
 const getFormattedRevenue = (balance, currency, detectedCurrency) => {
     const active = currency === 'auto' ? detectedCurrency : currency;
@@ -26,11 +24,13 @@ const getFormattedRevenue = (balance, currency, detectedCurrency) => {
 
 export const WalletCard = ({ balance = 0, name = 'User', activeTab, onRecyclePress }) => {
     const { theme, isDarkTheme } = useTheme();
+    const { width: windowWidth } = useWindowDimensions();
+    const screenWidth = Math.min(windowWidth || 400, 500);
     const [isCoinsFront, setIsCoinsFront] = useState(true);
     const [currency, setCurrency] = useState('auto');
     const [detectedCurrency, setDetectedCurrency] = useState('USD');
 
-    const cardWidth = screenWidth - 48; // Padding horizontal is 24 on each side
+    const cardWidth = Math.max(screenWidth - 48, 280);
     const cardHeight = 180;
     const R = 20; // Corner radius
     const R2 = 45; // Cutout radius
@@ -141,14 +141,17 @@ export const WalletCard = ({ balance = 0, name = 'User', activeTab, onRecyclePre
     // PanResponder for vertical swipe gestures
     const panResponder = useRef(
         PanResponder.create({
-            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 3,
+            onStartShouldSetPanResponder: () => false,
+            onStartShouldSetPanResponderCapture: () => false,
+            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
+            onMoveShouldSetPanResponderCapture: (_, gestureState) => Math.abs(gestureState.dy) > 10,
             onPanResponderGrant: (evt, _) => {
                 // Prevent parent ScrollView from scrolling
-                evt.nativeEvent.target?.requestDisallowInterceptTouchEvent?.(true);
+                evt?.nativeEvent?.target?.requestDisallowInterceptTouchEvent?.(true);
             },
             onPanResponderMove: (evt, gestureState) => {
                 // Keep preventing parent ScrollView from scrolling during drag
-                evt.nativeEvent.target?.requestDisallowInterceptTouchEvent?.(true);
+                evt?.nativeEvent?.target?.requestDisallowInterceptTouchEvent?.(true);
 
                 // Front card follows drag
                 dragY.setValue(gestureState.dy);
@@ -311,7 +314,7 @@ export const WalletCard = ({ balance = 0, name = 'User', activeTab, onRecyclePre
                     <View style={styles.topRow}>
                         <View style={styles.logoContainer}>
                             <Leaf size={18} color="rgba(255, 255, 255, 0.85)" />
-                            <Text style={styles.logoText}>greendrop</Text>
+                            <Text style={styles.logoText}>mytrash</Text>
                         </View>
                         <Text style={styles.frontCardMask}>
                             {isCoinsFront ? '•••• •••• •••• 4364' : '•••• •••• •••• 7216'}
@@ -340,7 +343,7 @@ export const WalletCard = ({ balance = 0, name = 'User', activeTab, onRecyclePre
                         <View style={styles.holderContainer}>
                             <Text style={styles.holderLabel}>card holder</Text>
                             <Text style={styles.holderName} numberOfLines={1}>
-                                {name || 'GreenDrop Member'}
+                                {name || 'MyTrash Member'}
                             </Text>
                         </View>
                         <View style={styles.infoContainer}>
@@ -424,6 +427,8 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         justifyContent: 'space-between',
+        position: 'relative',
+        zIndex: 1,
     },
     topRow: {
         flexDirection: 'row',

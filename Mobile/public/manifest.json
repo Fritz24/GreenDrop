@@ -1,0 +1,31 @@
+{
+  "short_name": "MyTrash",
+  "name": "MyTrash - Smart Waste Management",
+  "description": "MyTrash - Smart Waste Management & Drop-off Platform",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#121811",
+  "theme_color": "#22C55E",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}

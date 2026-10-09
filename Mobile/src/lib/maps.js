@@ -1,11 +1,11 @@
 /**
- * GreenDrop Maps Utility
+ * MyTrash Maps Utility
  * Uses free, open-source APIs — no API key needed:
  *  - Nominatim (OpenStreetMap) for geocoding & address search
  *  - OSRM (Open Source Routing Machine) for route calculation
  */
 
-const USER_AGENT = 'GreenDrop/1.0';
+const USER_AGENT = 'MyTrash/1.0';
 
 /**
  * Search for locations by text query.

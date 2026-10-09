@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, useWindowDimensions } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
@@ -11,6 +11,8 @@ const screenWidth = Dimensions.get('window').width;
 
 export const LeaderboardScreen = ({ parentActiveTab }) => {
     const { theme, isDarkTheme } = useTheme();
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 768;
     const [activeTab, setActiveTab] = useState('impact'); // 'impact' or 'leaderboard'
     const [loading, setLoading] = useState(true);
     
@@ -259,7 +261,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
             />
 
             {/* Custom Tab Switcher (Segmented Control) */}
-            <View style={styles.tabBarContainer}>
+            <View style={[styles.tabBarContainer, isDesktop && { maxWidth: 500, alignSelf: 'center', width: '100%' }]}>
                 <View style={[styles.tabBarBg, { backgroundColor: theme.colors.cardSecondary }]}>
                     <TouchableOpacity
                         style={[
@@ -300,14 +302,14 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
             ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[{ paddingBottom: 110 }, isDesktop && styles.desktopScrollContainer]}>
                     {activeTab === 'impact' ? (
                         /* === PERSONAL STATS TAB === */
                         <View style={styles.statsTab}>
                             {/* Environmental Multiplier Grid */}
                             <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 10 }]}>Ecological Footprint</Text>
-                            <View style={styles.gridContainer}>
-                                <Card style={styles.gridCard}>
+                            <View style={[styles.gridContainer, isDesktop && styles.desktopGridContainer]}>
+                                <Card style={[styles.gridCard, isDesktop && styles.desktopGridCard]}>
                                     <View style={[styles.gridIconBg, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                                         <Recycle size={22} color="#10B981" />
                                     </View>
@@ -317,7 +319,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                                     </Text>
                                 </Card>
 
-                                <Card style={styles.gridCard}>
+                                <Card style={[styles.gridCard, isDesktop && styles.desktopGridCard]}>
                                     <View style={[styles.gridIconBg, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
                                         <Cloud size={22} color="#3B82F6" />
                                     </View>
@@ -327,7 +329,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                                     </Text>
                                 </Card>
 
-                                <Card style={styles.gridCard}>
+                                <Card style={[styles.gridCard, isDesktop && styles.desktopGridCard]}>
                                     <View style={[styles.gridIconBg, { backgroundColor: 'rgba(6, 182, 212, 0.1)' }]}>
                                         <Droplet size={22} color="#06B6D4" />
                                     </View>
@@ -337,7 +339,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                                     </Text>
                                 </Card>
 
-                                <Card style={styles.gridCard}>
+                                <Card style={[styles.gridCard, isDesktop && styles.desktopGridCard]}>
                                     <View style={[styles.gridIconBg, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
                                         <Leaf size={22} color="#F59E0B" />
                                     </View>
@@ -379,11 +381,11 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
 
                             {/* Achievements / Badges */}
                             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Unlocked Badges</Text>
-                            <View style={styles.badgesList}>
+                            <View style={[styles.badgesList, isDesktop && styles.desktopBadgesList]}>
                                 {badges.map(badge => {
                                     const Icon = badge.icon;
                                     return (
-                                        <Card key={badge.id} style={[styles.badgeCard, !badge.unlocked && { opacity: 0.5 }]}>
+                                        <Card key={badge.id} style={[styles.badgeCard, isDesktop && styles.desktopBadgeCard, !badge.unlocked && { opacity: 0.5 }]}>
                                             <View style={[styles.badgeIconWrapper, { backgroundColor: badge.unlocked ? badge.color + '1A' : theme.colors.cardSecondary }]}>
                                                 {badge.unlocked ? (
                                                     <Icon size={24} color={badge.color} />
@@ -411,7 +413,7 @@ export const LeaderboardScreen = ({ parentActiveTab }) => {
                         </View>
                     ) : (
                         /* === LEADERBOARD TAB === */
-                        <View style={styles.leaderboardTab}>
+                        <View style={[styles.leaderboardTab, isDesktop && styles.desktopLeaderboardTab]}>
                             {/* Premium Podium Top 3 */}
                             <View style={styles.podiumContainer}>
                                 {/* 2nd Place */}
@@ -796,5 +798,33 @@ const styles = StyleSheet.create({
     userPoints: {
         fontSize: 14,
         fontWeight: '800',
-    }
+    },
+    desktopScrollContainer: {
+        maxWidth: 1100,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopGridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+        gap: 16,
+    },
+    desktopGridCard: {
+        flex: 1,
+        minWidth: 0,
+    },
+    desktopBadgesList: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 16,
+    },
+    desktopBadgeCard: {
+        width: '48.5%',
+        marginBottom: 0,
+    },
+    desktopLeaderboardTab: {
+        maxWidth: 800,
+        width: '100%',
+        alignSelf: 'center',
+    },
 });

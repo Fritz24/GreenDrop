@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, FlatList, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, ActivityIndicator, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
@@ -11,6 +11,8 @@ import { supabase } from '../lib/supabase';
 
 export const HomeScreen = ({ onNavigate, activeTab }) => {
     const { theme, isDarkTheme } = useTheme();
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 768;
     const [profile, setProfile] = useState(null);
     const [recentActivity, setRecentActivity] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -135,7 +137,7 @@ export const HomeScreen = ({ onNavigate, activeTab }) => {
             // Add default welcome notification
             list.push({
                 id: 'welcome',
-                title: 'Welcome to GreenDrop',
+                title: 'Welcome to MyTrash',
                 message: 'Start recycling and earn eco coins today!',
                 time: 'Just now',
                 type: 'welcome'
@@ -186,7 +188,11 @@ export const HomeScreen = ({ onNavigate, activeTab }) => {
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-            <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={[styles.container, { backgroundColor: theme.colors.background }]} 
+                contentContainerStyle={[isDesktop && styles.desktopScrollContainer]}
+                showsVerticalScrollIndicator={false}
+            >
                 <Header 
                     title={firstName} 
                     subtitle="Welcome back," 
@@ -198,71 +204,153 @@ export const HomeScreen = ({ onNavigate, activeTab }) => {
                     }}
                 />
 
-            {/* Points Summary Card */}
-            <View style={styles.section}>
-                <WalletCard 
-                    balance={profile?.eco_coins_balance || 0} 
-                    name={profile?.full_name} 
-                    activeTab={activeTab}
-                    onRecyclePress={() => onNavigate && onNavigate('booking')}
-                />
-            </View>
-
-            {/* Quick Actions */}
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
-                <View style={styles.quickActions}>
-                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('booking')}>
-                        <View style={[styles.iconBox, { backgroundColor: theme.colors.tint }]}>
-                            <Recycle size={24} color={theme.colors.primary} />
-                        </View>
-                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Recycle</Text>
-                    </Card>
-                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('rewards')}>
-                        <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(92, 116, 143, 0.15)' : 'rgba(74, 96, 122, 0.1)' }]}>
-                            <Award size={24} color={theme.colors.secondary} />
-                        </View>
-                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Rewards</Text>
-                    </Card>
-                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('leaderboard')}>
-                        <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(230, 167, 86, 0.15)' : 'rgba(176, 128, 71, 0.1)' }]}>
-                            <Leaf size={24} color={theme.colors.accent} />
-                        </View>
-                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Impact</Text>
-                    </Card>
-                </View>
-            </View>
-
-            {/* Recent Activity */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Activity</Text>
-                    {recentActivity.length > 0 && <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>}
-                </View>
-                
-                {recentActivity.length > 0 ? recentActivity.map(item => (
-                    <Card key={item.id} style={styles.activityCard}>
-                        <View style={styles.activityInfo}>
-                            <View style={[styles.activityIcon, { backgroundColor: theme.colors.tint }]}>
-                                <Recycle size={20} color={theme.colors.primary} />
+                {isDesktop ? (
+                    <View style={styles.desktopGrid}>
+                        {/* Left Column: WalletCard + Quick Actions */}
+                        <View style={styles.desktopLeftCol}>
+                            <View style={styles.desktopCardWrapper}>
+                                <WalletCard 
+                                    balance={profile?.eco_coins_balance || 0} 
+                                    name={profile?.full_name} 
+                                    activeTab={activeTab}
+                                    onRecyclePress={() => onNavigate && onNavigate('booking')}
+                                />
                             </View>
-                            <View>
-                                <Text style={[styles.activityType, { color: theme.colors.text }]}>{item.type} Recycling</Text>
-                                <Text style={[styles.activityDate, { color: theme.colors.textLight }]}>{item.date}</Text>
+
+                            <View style={[styles.section, { paddingHorizontal: 0, marginTop: 24 }]}>
+                                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
+                                <View style={styles.quickActions}>
+                                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('booking')}>
+                                        <View style={[styles.iconBox, { backgroundColor: theme.colors.tint }]}>
+                                            <Recycle size={24} color={theme.colors.primary} />
+                                        </View>
+                                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Recycle</Text>
+                                    </Card>
+                                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('rewards')}>
+                                        <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(92, 116, 143, 0.15)' : 'rgba(74, 96, 122, 0.1)' }]}>
+                                            <Award size={24} color={theme.colors.secondary} />
+                                        </View>
+                                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Rewards</Text>
+                                    </Card>
+                                    <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('leaderboard')}>
+                                        <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(230, 167, 86, 0.15)' : 'rgba(176, 128, 71, 0.1)' }]}>
+                                            <Leaf size={24} color={theme.colors.accent} />
+                                        </View>
+                                        <Text style={[styles.actionText, { color: theme.colors.text }]}>Impact</Text>
+                                    </Card>
+                                </View>
                             </View>
                         </View>
-                        <View style={styles.activityPoints}>
-                            <Text style={[styles.pointsAdded, { color: theme.colors.primary }]}>+{item.points}</Text>
-                            <ArrowRight size={16} color={theme.colors.textLight} />
+
+                        {/* Right Column: Recent Activity */}
+                        <View style={styles.desktopRightCol}>
+                            <View style={[styles.section, { paddingHorizontal: 0, marginTop: 0 }]}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Activity</Text>
+                                    {recentActivity.length > 0 && (
+                                        <TouchableOpacity onPress={() => onNavigate && onNavigate('leaderboard')}>
+                                            <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                                
+                                {recentActivity.length > 0 ? recentActivity.map(item => (
+                                    <Card key={item.id} style={styles.activityCard}>
+                                        <View style={styles.activityInfo}>
+                                            <View style={[styles.activityIcon, { backgroundColor: theme.colors.tint }]}>
+                                                <Recycle size={20} color={theme.colors.primary} />
+                                            </View>
+                                            <View>
+                                                <Text style={[styles.activityType, { color: theme.colors.text }]}>{item.type} Recycling</Text>
+                                                <Text style={[styles.activityDate, { color: theme.colors.textLight }]}>{item.date}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.activityPoints}>
+                                            <Text style={[styles.pointsAdded, { color: theme.colors.primary }]}>+{item.points}</Text>
+                                            <ArrowRight size={16} color={theme.colors.textLight} />
+                                        </View>
+                                    </Card>
+                                )) : (
+                                    <Card style={{ padding: 32, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Recycle size={36} color={theme.colors.primary} style={{ opacity: 0.6, marginBottom: 12 }} />
+                                        <Text style={{ color: theme.colors.textLight, textAlign: 'center', fontSize: 14 }}>
+                                            No recent activity yet. Request your first pickup to earn eco coins!
+                                        </Text>
+                                    </Card>
+                                )}
+                            </View>
                         </View>
-                    </Card>
-                )) : (
-                    <Text style={{ color: theme.colors.textLight, textAlign: 'center', marginTop: 20, marginBottom: 20 }}>No recent activity yet. Request your first pickup!</Text>
+                    </View>
+                ) : (
+                    /* Standard Mobile Stack (100% identical) */
+                    <>
+                        {/* Points Summary Card */}
+                        <View style={styles.section}>
+                            <WalletCard 
+                                balance={profile?.eco_coins_balance || 0} 
+                                name={profile?.full_name} 
+                                activeTab={activeTab}
+                                onRecyclePress={() => onNavigate && onNavigate('booking')}
+                            />
+                        </View>
+
+                        {/* Quick Actions */}
+                        <View style={styles.section}>
+                            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
+                            <View style={styles.quickActions}>
+                                <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('booking')}>
+                                    <View style={[styles.iconBox, { backgroundColor: theme.colors.tint }]}>
+                                        <Recycle size={24} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={[styles.actionText, { color: theme.colors.text }]}>Recycle</Text>
+                                </Card>
+                                <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('rewards')}>
+                                    <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(92, 116, 143, 0.15)' : 'rgba(74, 96, 122, 0.1)' }]}>
+                                        <Award size={24} color={theme.colors.secondary} />
+                                    </View>
+                                    <Text style={[styles.actionText, { color: theme.colors.text }]}>Rewards</Text>
+                                </Card>
+                                <Card style={styles.actionCard} onPress={() => onNavigate && onNavigate('leaderboard')}>
+                                    <View style={[styles.iconBox, { backgroundColor: isDarkTheme ? 'rgba(230, 167, 86, 0.15)' : 'rgba(176, 128, 71, 0.1)' }]}>
+                                        <Leaf size={24} color={theme.colors.accent} />
+                                    </View>
+                                    <Text style={[styles.actionText, { color: theme.colors.text }]}>Impact</Text>
+                                </Card>
+                            </View>
+                        </View>
+
+                        {/* Recent Activity */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Activity</Text>
+                                {recentActivity.length > 0 && <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>}
+                            </View>
+                            
+                            {recentActivity.length > 0 ? recentActivity.map(item => (
+                                <Card key={item.id} style={styles.activityCard}>
+                                    <View style={styles.activityInfo}>
+                                        <View style={[styles.activityIcon, { backgroundColor: theme.colors.tint }]}>
+                                            <Recycle size={20} color={theme.colors.primary} />
+                                        </View>
+                                        <View>
+                                            <Text style={[styles.activityType, { color: theme.colors.text }]}>{item.type} Recycling</Text>
+                                            <Text style={[styles.activityDate, { color: theme.colors.textLight }]}>{item.date}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.activityPoints}>
+                                        <Text style={[styles.pointsAdded, { color: theme.colors.primary }]}>+{item.points}</Text>
+                                        <ArrowRight size={16} color={theme.colors.textLight} />
+                                    </View>
+                                </Card>
+                            )) : (
+                                <Text style={{ color: theme.colors.textLight, textAlign: 'center', marginTop: 20, marginBottom: 20 }}>No recent activity yet. Request your first pickup!</Text>
+                            )}
+                        </View>
+                    </>
                 )}
-            </View>
 
-            <View style={{ height: 100 }} />
-        </ScrollView>
+                <View style={{ height: 100 }} />
+            </ScrollView>
 
         {/* Notifications Modal */}
         <Modal
@@ -552,5 +640,27 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    desktopScrollContainer: {
+        maxWidth: 1200,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopGrid: {
+        flexDirection: 'row',
+        paddingHorizontal: 24,
+        gap: 32,
+        alignItems: 'flex-start',
+    },
+    desktopLeftCol: {
+        width: 480,
+        maxWidth: '48%',
+    },
+    desktopCardWrapper: {
+        alignItems: 'flex-start',
+    },
+    desktopRightCol: {
+        flex: 1,
+        minWidth: 320,
     },
 });
