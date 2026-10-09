@@ -53,12 +53,19 @@ function MainApp() {
     checkOnboarding();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session);
+      handleSession(session, true);
     });
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      handleSession(session);
+    supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // Silent background refresh: keep view mounted without reloading
+        setSession(newSession);
+        return;
+      }
+
       if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setRole(null);
         setActiveTab('home');
         try {
           await AsyncStorage.removeItem('@onboarding_completed');
@@ -69,14 +76,21 @@ function MainApp() {
         } catch (e) {
           console.error('Error clearing onboarding status on signout:', e);
         }
-      } else if (event === 'SIGNED_IN') {
+        setLoadingAuth(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN') {
         setActiveTab('home');
+        handleSession(newSession, false);
       }
     });
   }, []);
 
-  const handleSession = async (currentSession) => {
-    setLoadingAuth(true);
+  const handleSession = async (currentSession, isInitial = false) => {
+    if (isInitial) {
+      setLoadingAuth(true);
+    }
     if (currentSession) {
       let userRole = 'user';
       let needsLocationOnboarding = false;
